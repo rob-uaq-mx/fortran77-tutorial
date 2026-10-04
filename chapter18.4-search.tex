@@ -1,0 +1,28 @@
+\section{Searching for mathematical software}
+
+A common situation is that you need a piece of code to solve a particular problem. You believe somebody must have written software to solve this type of problem already, but you do not know how to find it. Here are some suggestions:
+
+\begin{enumerate}
+    \item Ask your co-workers and colleagues. Always do this first, otherwise you can waste lots of time trying to find something the person next-door may have already.
+    \item Check \href{https://www.netlib.org/}{Netlib}. The \href{https://www.netlib.org/liblist.html}{list of libraries} is a good starting point, and there is also a \href{https://www.netlib.org/utk/misc/netlib_query.html}{search feature}.
+    \item Look it up in \href{https://gams.nist.gov/}{GAMS}, the Guide to Available Mathematical Software from NIST, which classifies numerical software by the type of problem it solves.
+    \item Look at the \href{https://fortran-lang.org/packages/}{list of Fortran packages} maintained by the Fortran community at \texttt{fortran-lang.org}, or search a code hosting site such as GitHub.
+    \item Ask in the \href{https://fortran-lang.discourse.group}{Fortran Discourse} forum, where many experienced Fortran programmers answer questions.
+\end{enumerate}
+
+Whatever you find, check its license before you use it in your own programs, and test it on a problem whose solution you know.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch18} that accompanies this tutorial. To run them you need the BLAS and LAPACK libraries (see \texttt{get\_blas.sh} and \texttt{get\_lapack.sh} in the \texttt{code} directory).
+
+\begin{enumerate}
+    \item Let $x = (1, 2, \ldots, 6)$ and $y = (10, 10, \ldots, 10)$. Use the BLAS routine \texttt{SAXPY(n, a, x, incx, y, incy)} to compute $y := 2x + y$, first for all the elements, and then (starting again from the original $y$) only for the elements with odd index, using increments of 2. Print $y$ in both cases.
+    \item Use the BLAS functions \texttt{SNRM2} and \texttt{SDOT} to compute the lengths of the vectors $u = (1, 0, 1)$ and $v = (0, 1, 1)$ and the angle between them, $\cos\theta = u \cdot v / (|u|\,|v|)$. Remember that functions must be declared with their type.
+    \item The BLAS function \texttt{ISAMAX(n, x, incx)} returns the \emph{position} of the element of $x$ with the largest absolute value. Use it to find and print that element of $x = (3, -8.5, 2, 7, -1, 8, 0.5)$.
+    \item Let $A$ be the $2 \times 3$ matrix with $a_{ik} = i + k$ and $B$ the $3 \times 2$ matrix with $b_{kj} = kj$, both stored in $5 \times 5$ arrays. Compute $C = AB$ entry by entry with \texttt{SDOT}, as in the example of this chapter, and then with a single call of the BLAS 3 routine \texttt{SGEMM('N', 'N', m, n, p, 1.0, A, lda, B, ldb, 0.0, C, ldc)}, which computes $C := 1.0\,AB + 0.0\,C$. Compare the results.
+    \item Modify the program \texttt{solve.f} of this chapter to solve, with a single call of \texttt{DGESV}, the system with two right-hand sides: the one of the example and $(2, -2, 1)$. (Hint: \texttt{B} becomes a $3 \times 2$ array, and \texttt{NRHS} is 2.)
+    \item Call \texttt{DGESV} with the singular matrices whose rows are $(1, 2, 3), (2, 4, 6), (1, 1, 1)$ and $(1, 2, 3), (4, 5, 6), (5, 7, 9)$, and the right-hand side $(1, 2, 3)$. What is the value of \texttt{INFO} in each case? Why does \texttt{DGESV} not detect that the second matrix is singular?
+    \item Put the subroutines \texttt{saxpy}, \texttt{matvec}, \texttt{scale} and \texttt{mscale} of Chapter 12 into a library \texttt{libmyla.a}, list its contents with \texttt{ar t}, and link the program \texttt{sclmat.f} with it. What happens if you put \texttt{-L. -lmyla} before \texttt{sclmat.f} on the command line?
+    \item In the program \texttt{solve.f}, write the matrix in the data statement row by row, as it appears in the system of equations. What solution does the program print? Which system has it solved?
+\end{enumerate}

@@ -1,0 +1,173 @@
+\section{LAPACK}
+
+LAPACK is a collection of Fortran subprograms for advanced linear algebra problems like solving systems of simultaneous linear equations, least-squares solutions of linear systems of equations, eigenvalue problems, and singular value problems. LAPACK replaces the older packages LINPACK and EISPACK. LAPACK subroutines were written to exploit BLAS as much as possible.
+
+\subsection{Routines}
+
+Probably the most widely used LAPACK routines are the ones that solve systems of linear equations:
+
+\begin{itemize}
+    \item xGESV - Solve AX=B for a general matrix A
+    \item xPOSV - Solve AX=B for a symmetric positive definite matrix A
+    \item xGBSV - Solve AX=B for a general banded matrix A
+\end{itemize}
+
+There are many more routines for other special types of matrices.
+
+The source code is available from Netlib at \url{https://www.netlib.org/lapack/}. The complete \href{https://www.netlib.org/lapack/lug/}{LAPACK User's Guide} is also on the Web.
+
+\subsection{Documentation}
+
+Just like the BLAS routines, the LAPACK routines are virtually self-explanatory. Details of the input and output parameters for any given subroutine are contained in the header section of the file. For example, here is the header section of the LAPACK subroutine SGESV:
+
+\begin{lstlisting}[style=fortran77]
+      SUBROUTINE SGESV( N, NRHS, A, LDA, IPIV, B, LDB, INFO )
+*
+*  -- LAPACK driver routine (version 2.0) --
+*     Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
+*     Courant Institute, Argonne National Lab, and Rice University
+*     March 31, 1993 
+*
+*     .. Scalar Arguments ..
+      INTEGER            INFO, LDA, LDB, N, NRHS
+*     ..
+*     .. Array Arguments ..
+      INTEGER            IPIV( * )
+      REAL               A( LDA, * ), B( LDB, * )
+*     ..
+*
+*  Purpose
+*  =======
+*
+*  SGESV computes the solution to a real system of linear equations
+*     A * X = B,
+*  where A is an N-by-N matrix and X and B are N-by-NRHS matrices.
+*
+*  The LU decomposition with partial pivoting and row interchanges is
+*  used to factor A as
+*     A = P * L * U,
+*  where P is a permutation matrix, L is unit lower triangular, and U is
+*  upper triangular.  The factored form of A is then used to solve the
+*  system of equations A * X = B.
+*
+*  Arguments
+*  =========
+*
+*  N       (input) INTEGER
+*          The number of linear equations, i.e., the order of the
+*          matrix A.  N >= 0.
+*
+*  NRHS    (input) INTEGER
+*          The number of right hand sides, i.e., the number of columns
+*          of the matrix B.  NRHS >= 0.
+*
+*  A       (input/output) REAL array, dimension (LDA,N)
+*          On entry, the N-by-N coefficient matrix A.
+*          On exit, the factors L and U from the factorization
+*          A = P*L*U; the unit diagonal elements of L are not stored.
+*
+*  LDA     (input) INTEGER
+*          The leading dimension of the array A.  LDA >= max(1,N).
+*
+*  IPIV    (output) INTEGER array, dimension (N)
+*          The pivot indices that define the permutation matrix P;
+*          row i of the matrix was interchanged with row IPIV(i).
+*
+*  B       (input/output) REAL array, dimension (LDB,NRHS)
+*          On entry, the N-by-NRHS matrix of right hand side matrix B.
+*          On exit, if INFO = 0, the N-by-NRHS solution matrix X.
+*
+*  LDB     (input) INTEGER
+*          The leading dimension of the array B.  LDB >= max(1,N).
+*
+*  INFO    (output) INTEGER
+*          = 0:  successful exit
+*          < 0: if INFO = -i, the i-th argument had an illegal value
+*          > 0:  if INFO = i, U(i,i) is exactly zero.  The factorization
+*                has been completed, but the factor U is exactly
+*                singular, so the solution could not be computed.
+*
+*  =====================================================================
+\end{lstlisting}
+
+The header tells us everything we need to call the routine. In particular, \texttt{A} and \texttt{B} are \emph{overwritten}: on return, \texttt{A} contains the LU factors and \texttt{B} the solution. If you still need the original matrix, make a copy before the call.
+
+\subsection{Example: solving a linear system}
+
+The following program solves the system
+\[
+\begin{array}{rcrcrcr}
+  2x & + &  y & - &  z & = &   8 \\
+ -3x & - &  y & + & 2z & = & -11 \\
+ -2x & + &  y & + & 2z & = &  -3
+\end{array}
+\]
+with \texttt{DGESV}, the double precision version of the routine documented above:
+
+\begin{lstlisting}[style=fortran77]
+      program solve
+      implicit none
+      integer n, nrhs, lda, ldb
+      parameter (n=3, nrhs=1, lda=n, ldb=n)
+      double precision A(lda,n), b(ldb)
+      integer ipiv(n), info, i
+
+c The system   2x +  y -  z =   8
+c              -3x -  y + 2z = -11
+c              -2x +  y + 2z =  -3
+c A is given column by column (that is how Fortran stores it)
+      data A / 2.0d0, -3.0d0, -2.0d0,
+     +         1.0d0, -1.0d0,  1.0d0,
+     +        -1.0d0,  2.0d0,  2.0d0 /
+      data b / 8.0d0, -11.0d0, -3.0d0 /
+
+      call dgesv(n, nrhs, A, lda, ipiv, b, ldb, info)
+
+      if (info .ne. 0) then
+         write (*,*) 'DGESV failed, info =', info
+         stop
+      endif
+      write (*,'(A,I1,A,F10.6)') ('x(', i, ') = ', b(i), i=1,n)
+
+      stop
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+x(1) =   2.000000
+x(2) =   3.000000
+x(3) =  -1.000000
+\end{lstlisting}
+
+Some things to notice:
+
+\begin{itemize}
+    \item Always check \texttt{info} after calling a LAPACK routine. A positive value from \texttt{DGESV} means that the matrix is singular and there is no (unique) solution.
+    \item The matrix is initialized with a \texttt{data} statement, which fills it column by column. Writing the numbers row by row is a classic mistake that silently solves the system with the transposed matrix.
+    \item \texttt{b} is declared as a one-dimensional array although the routine expects \texttt{B(LDB,*)}. With one right-hand side this is allowed, because a column of a two-dimensional array is stored exactly like a vector (see Chapter 12).
+\end{itemize}
+
+\subsection{How to get LAPACK}
+
+On Linux, LAPACK is usually available as a package, e.g.\ \texttt{sudo apt install liblapack-dev} (Debian/Ubuntu) or \texttt{sudo dnf install lapack-devel} (Fedora). Then the program above is compiled with
+
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small,columns=fullflexible]
+gfortran solve.f -llapack -lblas -o solve
+\end{lstlisting}
+
+(LAPACK calls BLAS, so \texttt{-lblas} must come after \texttt{-llapack}.)
+
+The whole of LAPACK is large, but if you only need a few routines, Netlib can give you a routine \emph{together with all the routines it depends on}, including the BLAS routines it uses. For \texttt{DGESV}:
+
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small,columns=fullflexible]
+curl -o dgesv.tgz "https://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=lapack/double/dgesv.f"
+tar xzf dgesv.tgz
+gfortran -O2 -c lapack/*/*.f
+ar cr liblapack.a *.o
+ranlib liblapack.a
+gfortran solve.f -L. -llapack -o solve
+\end{lstlisting}
+
+Here the library contains everything \texttt{DGESV} needs (17 files), so no separate BLAS library is required. The routines delivered this way may come from an older LAPACK version than the current one, which is fine for learning. For the complete, current LAPACK, download \url{https://www.netlib.org/lapack/} or use the official repository \url{https://github.com/Reference-LAPACK/lapack}.

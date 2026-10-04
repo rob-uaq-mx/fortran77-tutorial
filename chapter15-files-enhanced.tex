@@ -1,0 +1,573 @@
+\chapter{File I/O}
+
+So far we have assumed that the input/output has been to the standard input or the standard output. It is also possible to read from or write to \emph{files} which are stored on some external storage device, typically a disk. In Fortran each file is associated with a \emph{unit number}, a non-negative integer. The allowed range depends on the compiler, but 1 to 99 is safe everywhere. Some unit numbers are traditionally preconnected: on almost all systems 5 is standard input and 6 is standard output (and often 0 is standard error), so do not use them for your own files.
+
+\section{Opening and closing a file}
+
+Before you can use a file you have to \emph{open} it. The command is
+
+\begin{lstlisting}[style=fortran77]
+    open (list-of-specifiers)
+\end{lstlisting}
+
+where the most common specifiers are:
+
+\begin{lstlisting}[style=fortran77]
+    [UNIT=]  u
+    IOSTAT=  ios
+    ERR=     err
+    FILE=    fname
+    STATUS=  sta
+    ACCESS=  acc
+    FORM=    frm
+    RECL=    rl
+\end{lstlisting}
+
+The unit number \emph{u} is a number in the range 1-99 that denotes this file (the programmer may chose any number but he/she has to make sure it is unique).
+
+\emph{ios} is the I/O status identifier and should be an integer variable. Upon return, \emph{ios} is zero if the statement was successful and returns a non-zero value otherwise.
+
+\emph{err} is a label which the program will jump to if there is an error.
+
+\emph{fname} is a character string denoting the file name.
+
+\emph{sta} is a character string that has to be either NEW, OLD, SCRATCH or UNKNOWN. It shows the prior status of the file: OLD means the file must already exist, NEW means it must not exist yet (it is then created). A scratch file is a file that is created when opened and deleted when closed (or the program ends). UNKNOWN, the default, leaves the decision to the system; in practice it opens the file if it exists and creates it otherwise.
+
+\emph{acc} must be either SEQUENTIAL or DIRECT. The default is SEQUENTIAL.
+
+\emph{frm} must be either FORMATTED or UNFORMATTED. The default is FORMATTED for sequential files and UNFORMATTED for direct access files.
+
+\emph{rl} specifies the length of each record in a direct-access file.
+
+For more details on these specifiers, see a good Fortran 77 book.
+
+After a file has been opened, you can access it by read and write statements. When you are done with the file, it should be closed by the statement
+
+\begin{lstlisting}[style=fortran77]
+      close ([UNIT=]u[,IOSTAT=ios,ERR=err,STATUS=sta])
+\end{lstlisting}
+
+where, as usual, the parameters in brackets are optional.
+
+In this case \emph{sta} is a character string which can be KEEP (the default) or DELETE.
+
+\subsection{Basic File Opening and Closing Example}
+
+Here's a simple example demonstrating the basic concepts of opening, writing to, and closing a file:
+
+\begin{lstlisting}[style=fortran77]
+      program basic_file
+      implicit none
+      integer unit
+
+c Basic file operations
+      unit = 10
+
+c Open the file for writing
+      open (unit, file='output.txt', status='unknown')
+
+      write (unit,*) 'Hello, file!'
+      write (unit,*) 'This is line 2'
+
+c Close the file
+      close (unit)
+
+      write (*,*) 'File created successfully'
+
+      stop
+      end
+\end{lstlisting}
+
+After running the program, the file \texttt{output.txt} contains the two lines. Some remarks:
+
+\begin{itemize}
+    \item We used \texttt{status='unknown'}, so the program can be run again and again. With \texttt{status='new'}, the second run would stop with an error like \emph{Cannot open file 'output.txt': File exists}. Use NEW only when overwriting an existing file would be a mistake.
+    \item With \texttt{status='unknown'}, an existing file is opened positioned at its beginning, so writing to it replaces its old contents.
+    \item The variable that holds the unit number is called \texttt{unit}. This is legal, since Fortran has no reserved words, but some programmers prefer a name such as \texttt{iu} to avoid confusion with the \texttt{unit=} specifier.
+\end{itemize}
+
+\section{Read and write revisited}
+
+The only necessary change from our previous simplified read/write statements, is that the unit number must be specified. But frequently one wants to add more specifiers. Here is how:
+
+\begin{lstlisting}[style=fortran77]
+      read ([UNIT=]u, [FMT=]fmt, IOSTAT=ios, ERR=err, END=s)
+      write([UNIT=]u, [FMT=]fmt, IOSTAT=ios, ERR=err)
+\end{lstlisting}
+
+where most of the specifiers have been described above. The END=s specifier, which is only allowed in \texttt{read}, defines which statement label the program jumps to if it reaches end-of-file.
+
+\section{Error Handling}
+
+Proper error handling is crucial when working with files. Fortran 77 provides two main mechanisms for error detection: the IOSTAT parameter and the ERR parameter.
+
+\subsection{Using IOSTAT for Error Detection}
+
+The IOSTAT parameter returns an integer status code. Zero indicates success, while non-zero values indicate various error conditions:
+
+\begin{lstlisting}[style=fortran77]
+      program iostat_example
+      implicit none
+      integer unit, ios
+      character*20 filename
+      
+      unit = 15
+      filename = 'nonexistent.dat'
+      
+c Try to open a file that may not exist
+      open (unit, file=filename, status='old', iostat=ios)
+      
+      if (ios .eq. 0) then
+         write (*,*) 'File opened successfully'
+         close (unit)
+      else
+         write (*,*) 'Error opening file: ', filename
+         write (*,*) 'Error code: ', ios
+      endif
+      
+      stop
+      end
+\end{lstlisting}
+
+\subsection{Using ERR for Error Handling}
+
+The ERR parameter specifies a statement label to jump to when an error occurs:
+
+\begin{lstlisting}[style=fortran77]
+      program err_example
+      implicit none
+      integer unit
+      character*20 filename
+      
+      unit = 12
+      filename = 'missing.dat'
+      
+c Try to open file, jump to error handler if it fails
+      open (unit, file=filename, status='old', err=100)
+      
+      write (*,*) 'File opened successfully'
+      close (unit)
+      goto 200
+      
+c Error handler
+  100 write (*,*) 'Cannot open file: ', filename
+      write (*,*) 'Please check if file exists'
+      
+  200 stop
+      end
+\end{lstlisting}
+
+\section{File STATUS Parameter}
+
+The STATUS parameter controls how Fortran treats the file when opening it. Besides UNKNOWN, the three main options are NEW, OLD, and SCRATCH:
+
+\begin{lstlisting}[style=fortran77]
+      program status_examples
+      implicit none
+      integer unit1, unit2, unit3
+      character*40 line
+
+c Example 1: Create a NEW file
+      unit1 = 11
+      open (unit1, file='newfile.txt', status='new')
+      write (unit1,'(A)') 'This is a new file'
+      close (unit1)
+
+c Example 2: Open an OLD (existing) file, read back the line
+c we wrote, and delete the file when closing it
+      unit2 = 12
+      open (unit2, file='newfile.txt', status='old')
+      read (unit2,'(A)') line
+      write (*,*) 'Read from newfile.txt: ', line
+      close (unit2, status='delete')
+
+c Example 3: Create a SCRATCH file (temporary)
+      unit3 = 13
+      open (unit3, status='scratch')
+      write (unit3,*) 'This is temporary data'
+      write (unit3,*) 'It will be deleted when closed'
+      close (unit3)  ! File is automatically deleted
+      
+      write (*,*) 'All file operations completed'
+
+      stop
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ Read from newfile.txt: This is a new file
+ All file operations completed
+\end{lstlisting}
+
+Because the second \texttt{close} uses \texttt{status='delete'}, the file \texttt{newfile.txt} no longer exists when the program ends, and the program can be run again. Try changing \texttt{'delete'} to \texttt{'keep'} and running the program twice: the second time the \texttt{open} with \texttt{status='new'} fails, because the file already exists.
+
+The format \texttt{'(A)'} used here reads or writes a whole line as text; it is explained in Chapter~\ref{chap:format}.
+
+\section{File ACCESS Methods}
+
+Fortran 77 supports two types of file access: sequential and direct access.
+
+\subsection{Sequential Access}
+
+Sequential access processes records in order from beginning to end:
+
+\begin{lstlisting}[style=fortran77]
+      program access_examples
+      implicit none
+      integer unit, i
+      real data(5)
+      
+c Sequential access (default)
+      unit = 20
+      open (unit, file='sequential.dat', access='sequential')
+      
+      do 10 i = 1, 5
+         data(i) = real(i) * 1.5
+         write (unit,*) data(i)
+   10 continue
+      close (unit)
+      
+c Read back sequentially
+      open (unit, file='sequential.dat', access='sequential')
+      do 20 i = 1, 5
+         read (unit,*) data(i)
+         write (*,*) 'Read value:', data(i)
+   20 continue
+      close (unit)
+      
+      stop
+      end
+\end{lstlisting}
+
+\subsection{Direct Access}
+
+Direct access allows reading and writing records in any order. Each record must have the same length:
+
+\begin{lstlisting}[style=fortran77]
+      program direct_access
+      implicit none
+      integer unit, record_num
+      real value
+      
+      unit = 25
+      
+c Create direct access file with fixed record length
+      open (unit, file='direct.dat', access='direct', recl=20)
+      
+c Write records in any order
+      write (unit, rec=3) 30.0
+      write (unit, rec=1) 10.0
+      write (unit, rec=5) 50.0
+      write (unit, rec=2) 20.0
+      write (unit, rec=4) 40.0
+      
+c Read records in any order
+      do 10 record_num = 1, 5
+         read (unit, rec=record_num) value
+         write (*,*) 'Record', record_num, ':', value
+   10 continue
+      
+      close (unit)
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{File FORM Parameter}
+
+The FORM parameter specifies whether the file is formatted (human-readable) or unformatted (binary):
+
+\begin{lstlisting}[style=fortran77]
+      program form_examples
+      implicit none
+      integer unit, i
+      real numbers(3)
+      
+      numbers(1) = 3.14159
+      numbers(2) = 2.71828
+      numbers(3) = 1.41421
+      
+c Write formatted file (human readable)
+      unit = 30
+      open (unit, file='formatted.txt', form='formatted')
+      write (unit,100) (numbers(i), i=1,3)
+  100 format (3f10.5)
+      close (unit)
+      
+c Write unformatted file (binary, more efficient)
+      unit = 31
+      open (unit, file='unformatted.dat', form='unformatted')
+      write (unit) (numbers(i), i=1,3)
+      close (unit)
+      
+c Read back unformatted file
+      open (unit, file='unformatted.dat', form='unformatted')
+      read (unit) (numbers(i), i=1,3)
+      close (unit)
+      
+      write (*,*) 'Values from unformatted file:'
+      write (*,*) (numbers(i), i=1,3)
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{End-of-File Detection}
+
+The END parameter allows programs to detect when they reach the end of a file:
+
+\begin{lstlisting}[style=fortran77]
+      program end_example
+      implicit none
+      integer unit, count
+      real value
+      
+      unit = 40
+      count = 0
+      
+c First, create a data file
+      open (unit, file='data.txt')
+      write (unit,*) 1.0
+      write (unit,*) 2.5
+      write (unit,*) 3.7
+      write (unit,*) 4.2
+      close (unit)
+      
+c Now read until end of file
+      open (unit, file='data.txt', status='old')
+      
+   10 read (unit, *, end=20) value
+      count = count + 1
+      write (*,*) 'Value', count, ':', value
+      goto 10
+      
+   20 write (*,*) 'End of file reached. Total values:', count
+      close (unit)
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{Comprehensive Error Handling Example}
+
+Here's a more sophisticated example that demonstrates comprehensive error handling:
+
+\begin{lstlisting}[style=fortran77]
+      program complete_error_handling
+      implicit none
+      integer unit, ios, count
+      real value, sum
+      character*30 filename
+      
+      unit = 50
+      filename = 'numbers.dat'
+      count = 0
+      sum = 0.0
+      
+c Open file with complete error checking
+      open (unit, file=filename, status='old', iostat=ios, err=100)
+      
+      write (*,*) 'Reading from file: ', filename
+      
+c Read data with end-of-file detection
+   10 read (unit, *, iostat=ios, end=30, err=200) value
+      count = count + 1
+      sum = sum + value
+      write (*,*) 'Read value', count, ':', value
+      goto 10
+      
+c Normal end of file
+   30 write (*,*) 'Successfully read', count, 'values'
+      write (*,*) 'Sum =', sum
+      write (*,*) 'Average =', sum / real(count)
+      close (unit)
+      goto 999
+      
+c File open error
+  100 write (*,*) 'Error: Cannot open file ', filename
+      write (*,*) 'Error code:', ios
+      goto 999
+      
+c Read error
+  200 write (*,*) 'Error reading from file at record', count+1
+      write (*,*) 'Error code:', ios
+      close (unit)
+      
+  999 stop
+      end
+\end{lstlisting}
+
+\section{File Existence Checking}
+
+The INQUIRE statement can be used to check if a file exists before attempting to open it:
+
+\begin{lstlisting}[style=fortran77]
+      program file_exists
+      implicit none
+      character*20 filename
+      logical exists
+      integer unit
+      
+      filename = 'test.dat'
+      unit = 60
+      
+c Check if file exists
+      inquire (file=filename, exist=exists)
+      
+      if (exists) then
+         write (*,*) 'File ', filename, ' exists'
+         open (unit, file=filename, status='old')
+         write (*,*) 'File opened for reading'
+      else
+         write (*,*) 'File ', filename, ' does not exist'
+         write (*,*) 'Creating new file...'
+         open (unit, file=filename, status='new')
+         write (unit,*) 'This is a new file'
+         write (*,*) 'File created and written'
+      endif
+      
+      close (unit)
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{Appending to Files}
+
+To add data to the end of an existing file, you can use the POSITION parameter:
+
+\begin{lstlisting}[style=fortran77]
+      program append_example
+      implicit none
+      integer unit, i
+      
+      unit = 70
+      
+c Create initial file
+      open (unit, file='log.txt', status='unknown')
+      write (unit,*) 'Initial entry'
+      close (unit)
+      
+c Append to existing file (reopen and position at end)
+      open (unit, file='log.txt', status='old', position='append')
+      
+      do 10 i = 1, 3
+         write (unit,*) 'Appended entry number', i
+   10 continue
+      
+      close (unit)
+      
+      write (*,*) 'Data appended to log.txt'
+
+      stop
+      end
+\end{lstlisting}
+
+Note that the \texttt{POSITION} specifier is not part of Fortran 77: it was introduced in Fortran 90. It is supported by all current compilers. In strict Fortran 77, the usual way to append is to read the file until the end-of-file condition occurs, then \texttt{backspace} over the end-of-file and write the new records.
+
+\section{A complete example: points in space}
+\label{sec:points}
+
+You are given a data file with xyz coordinates for a bunch of points. The number of points is given on the first line. The file name of the data file is \emph{points.dat}. The format for each coordinate is known to be F10.4, i.e.\ each number occupies 10 columns and has 4 decimals (we'll learn about FORMAT statements in Chapter~\ref{chap:format}). For example:
+
+\begin{lstlisting}[style=output]
+4
+    0.0000    0.0000    0.0000
+    2.0000    0.0000    0.0000
+    0.0000    2.0000    0.0000
+    2.0000    2.0000    4.0000
+\end{lstlisting}
+
+Here is a program that reads the data into 3 arrays x, y, z, computes the \emph{centroid} of the points (the point whose coordinates are the averages of the coordinates of all points), and finds the point farthest away from the centroid:
+
+\begin{lstlisting}[style=fortran77]
+      program inpdat
+c
+c  This program reads n points from a data file and stores them in
+c  3 arrays x, y, z. Then it computes their centroid and the point
+c  farthest away from it.
+c
+      implicit none
+      integer nmax, u
+      parameter (nmax=1000, u=20)
+      real x(nmax), y(nmax), z(nmax)
+      real xc, yc, zc, d, dmax
+      integer n, i, imax
+
+c  Open the data file
+      open (u, FILE='points.dat', STATUS='OLD')
+
+c  Read the number of points
+      read(u,*) n
+      if (n .GT. nmax .OR. n .LT. 1) then
+         write(*,*) 'Error: n = ', n, ' must be between 1 and ', nmax
+         goto 9999
+      endif
+
+c  Loop over the data points
+      do 10 i = 1, n
+         read(u,100) x(i), y(i), z(i)
+   10 continue
+  100 format (3F10.4)
+
+c  Close the file
+      close (u)
+
+c  Centroid: the average of the coordinates
+      xc = 0.0
+      yc = 0.0
+      zc = 0.0
+      do 20 i = 1, n
+         xc = xc + x(i)
+         yc = yc + y(i)
+         zc = zc + z(i)
+   20 continue
+      xc = xc / real(n)
+      yc = yc / real(n)
+      zc = zc / real(n)
+
+c  The point farthest away from the centroid
+      imax = 1
+      dmax = -1.0
+      do 30 i = 1, n
+         d = sqrt((x(i)-xc)**2 + (y(i)-yc)**2 + (z(i)-zc)**2)
+         if (d .GT. dmax) then
+            dmax = d
+            imax = i
+         endif
+   30 continue
+
+      write(*,*) 'Number of points:', n
+      write(*,*) 'Centroid:', xc, yc, zc
+      write(*,*) 'Farthest point is number', imax, ' at distance', dmax
+
+ 9999 stop
+      end
+\end{lstlisting}
+
+With the data file shown above, the output is:
+
+\begin{lstlisting}[style=output]
+ Number of points:           4
+ Centroid:   1.00000000       1.00000000       1.00000000
+ Farthest point is number           4  at distance   3.31662488
+\end{lstlisting}
+
+Notice how the program checks that \texttt{n} fits in the arrays before reading the points. Without this check, a data file with more than 1000 points would make the program write beyond the end of the arrays, which in Fortran 77 is not detected and can have unpredictable consequences.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch15} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that writes a table of $x$ and $\sin(x)$, for 11 equally spaced values of $x$ from 0 to $\pi$, to the file \texttt{sine.dat}. Then the program should open the file again, read the table back, and print the largest value of $\sin(x)$ and the $x$ where it occurs.
+    \item Write a program that asks for the name of a text file, opens it (printing a message and stopping if the file cannot be opened; use \texttt{IOSTAT}), and counts its lines. Hint: read each line into a character variable with the format \texttt{'(A)'}, and use \texttt{END=} to detect the end of the file.
+    \item Write a program that creates a direct-access file and writes the squares of $1, 2, \ldots, 10$ to it, record $i$ holding $i^2$, in \emph{reverse} order ($i = 10, 9, \ldots, 1$). Then the program should read back records 10, 1 and 5, in this order, print them, and delete the file. (With gfortran, \texttt{RECL} is measured in bytes, and a default integer occupies 4 bytes.)
+    \item Run the program \texttt{status\_examples} of this chapter. Then change \texttt{status='delete'} to \texttt{status='keep'} and run it twice. What happens the second time, and why? What would happen with \texttt{status='unknown'} in the first \texttt{open}?
+    \item Write a program that writes the same 1000 real numbers (for example $\sqrt{1}, \ldots, \sqrt{1000}$) to a formatted file, one number per line with list-directed output, and to an unformatted file with a single write statement. Compare the sizes of the two files. Why are they so different?
+    \item Write a program that copies the text file \texttt{poem.dat} to a new file \texttt{poem.num}, adding the line number at the beginning of each line, and then prints the new file.
+    \item Write a program that reads real numbers, one per line, from a file that may contain bad data (for example a line with \texttt{abc}), using \texttt{IOSTAT} in the read statement. The program should report the number of each bad line, skip it, and print the number and the sum of the good values at the end of the file. (Recall that \texttt{IOSTAT} is positive for an error and negative at the end of the file.)
+    \item Write a program that counts how many times it has been run, keeping the count in the file \texttt{runs.dat}. Use \texttt{INQUIRE} to find out whether the file exists (the first time it does not).
+\end{enumerate}

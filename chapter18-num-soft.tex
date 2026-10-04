@@ -1,0 +1,30 @@
+\chapter{Numerical Software}
+
+Most computational problems in engineering can be broken down into well-known types of calculations, e.g., solving linear systems of equations, computing fast Fourier transforms, etc. Furthermore, software to solve these subtasks is often already available. Consequently, you only have to write a short \emph{driver} routine for your particular problem. This way people don't have to reinvent the wheel over and over again.
+
+For linear algebra and many other basic numerical computations there is high-quality free software available, much of it through Netlib. For some specialized problems, the best software must be purchased from a commercial company.
+
+\section{Netlib}
+
+Netlib (the NET LIBrary) is a large collection of freely available software, documents, and databases of interest to the numerical, scientific computing, and other communities. It was started in the 1980's at AT\&T Bell Laboratories and Argonne National Laboratory, and is now maintained mainly at the University of Tennessee and Oak Ridge National Laboratory. The address is
+
+\begin{center}
+\url{https://www.netlib.org/}
+\end{center}
+
+Netlib contains high-quality software that has been extensively tested, but (as all free software) it comes with no warranty and little (if any) support. Most of it is written in Fortran 77. In order to use the software, you download the source code and compile it yourself. A very useful feature is that for many routines Netlib can deliver the routine \emph{together with all the routines it depends on}; we will use this in the section on LAPACK.
+
+Two of the most popular packages at Netlib are the BLAS and LAPACK libraries, which we will describe in later sections. Other well-known Netlib packages, all written in Fortran 77, are QUADPACK (numerical integration), FFTPACK (fast Fourier transforms), ODEPACK (ordinary differential equations) and MINPACK (nonlinear equations and least squares).
+
+\section{Other sources of numerical software}
+
+In this section we briefly mention some other important sources of software for numerical computations.
+
+\begin{description}
+    \item[Optimized BLAS and LAPACK] The reference BLAS and LAPACK from Netlib are written for clarity and portability, not for speed. Optimized versions with exactly the same calling sequences are available for most computers, for example the free \href{https://www.openblas.net}{OpenBLAS}, Intel's oneMKL, and Apple's Accelerate framework. A program that calls BLAS or LAPACK can use any of them without changes: only the library you link with changes.
+    \item[NAG] The \href{https://nag.com}{Numerical Algorithms Group} sells a large Fortran library with well over 1000 user-callable routines for solving general applied math problems, including: ordinary and partial differential equations, optimization problems, FFT and other transforms, quadrature, linear algebra, non-linear equations, integral equations, statistics, and more.
+    \item[IMSL] The \href{https://www.imsl.com}{IMSL Fortran Numerical Library} is another commercial library that covers most of the areas of the NAG library, with special strength in statistics.
+    \item[Numerical Recipes] The books \emph{Numerical Recipes} by Press, Teukolsky, Vetterling and Flannery (with editions in Fortran 77, Fortran 90, C and C++) are very popular among engineers because they can be used as cookbooks where you can find a ``recipe'' to solve the problem at hand, together with a clear explanation of the method. They are excellent for learning. Note, however, that the code is copyrighted and its license is restrictive, and that for serious work the libraries mentioned above are usually more robust. See \url{https://numerical.recipes}.
+\end{description}
+
+Most of the software listed above can also be called from C and other languages.

@@ -1,0 +1,443 @@
+\chapter{Variables, types, and declarations}
+
+\section{Variable names}
+
+Variable names in Fortran consist of 1-6 characters chosen from the letters \texttt{a-z} and the digits \texttt{0-9}. The first character must be a letter. Fortran 77 does not distinguish between upper and lower case, in fact, it assumes all input is upper case. However, nearly all Fortran 77 compilers will accept lower case. If you should ever encounter a Fortran 77 compiler that insists on upper case it is usually easy to convert the source code to all upper case.
+
+Strictly speaking, some of the names used in this tutorial (for example \texttt{variables\_demo} or \texttt{r\_sum}) break this rule: they are longer than six characters or contain an underscore. Fortran 90 allows names of up to 31 characters (63 since Fortran 2003) including underscores, and practically every Fortran 77 compiler in use today, gfortran included, accepts them. If you need to write strictly standard Fortran 77, keep to six letters and digits.
+
+Unlike most programming languages, Fortran has no \emph{reserved words}. Words such as \texttt{program}, \texttt{real}, \texttt{stop} and \texttt{end} have a special meaning, but the compiler recognizes them from their position in a statement, so it is legal (though very confusing!) to have a variable called \texttt{real} or \texttt{end}. Do not take advantage of this: choose names that cannot be confused with the words of the language.
+
+\section{Types and declarations}
+
+Every variable \emph{should} be defined in a \emph{declaration}. This establishes the \emph{type} of the variable. The most common declarations are:
+
+\begin{lstlisting}[style=fortran77]
+      integer   list of variables
+      real      list of variables
+      double precision  list of variables
+      complex   list of variables
+      logical   list of variables
+      character list of variables
+\end{lstlisting}
+
+The \emph{list of variables} should consist of variable names separated by commas. Each variable should be declared exactly once. If a variable is undeclared, Fortran 77 uses a set of \emph{implicit rules} to establish the type. This means all variables starting with the letters \texttt{i-n} are integers and all others are real. Many old Fortran 77 programs uses these implicit rules, but \emph{you should not!} The probability of errors in your program grows dramatically if you do not consistently declare your variables.
+
+\begin{lstlisting}[style=fortran77]
+      program variables_demo
+      integer i, count, sum
+      real x, y, average
+      double precision bignum, smallnum
+      logical flag1, flag2
+      character*10 firstname
+      character*15 lastname
+      
+c This program demonstrates variable declarations
+      
+      i = 10
+      count = 25
+      sum = i + count
+      
+      x = 3.14159
+      y = 2.71828
+      average = (x + y) / 2.0
+      
+      bignum = 1.23456789D+15
+      smallnum = 9.87654321D-12
+      
+      flag1 = .TRUE.
+      flag2 = .FALSE.
+      
+      firstname = 'John'
+      lastname = 'Smith'
+      
+      write (*,*) 'Integer values:'
+      write (*,*) '  i =', i, '  count =', count, '  sum =', sum
+      write (*,*) 'Real values:'
+      write (*,*) '  x =', x, '  y =', y, '  average =', average
+      write (*,*) 'Double precision values:'
+      write (*,*) '  bignum =', bignum
+      write (*,*) '  smallnum =', smallnum
+      write (*,*) 'Logical values:'
+      write (*,*) '  flag1 =', flag1, '  flag2 =', flag2
+      write (*,*) 'Character values:'
+      write (*,*) '  firstname =', firstname
+      write (*,*) '  lastname =', lastname
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{Integers and floating point variables}
+
+Fortran 77 has only one type for integer variables. Integers are usually stored as 32 bits (4 bytes) variables. Therefore, all integer variables should take on values in the range [-m,m] where m is approximately $2 \times 10^9$.
+
+\begin{lstlisting}[style=fortran77]
+      program integer_range
+      integer small, big, result
+      
+c This program demonstrates integer ranges and overflow
+      
+      small = 10
+      big = 2000000000  ! Close to maximum 32-bit integer
+      
+      write (*,*) 'small =', small
+      write (*,*) 'big =', big
+      
+      result = big + big  ! This will likely overflow
+      
+      write (*,*) 'big + big =', result
+      write (*,*) 'This result may be incorrect due to integer overflow'
+
+      stop
+      end
+\end{lstlisting}
+
+Output with gfortran:
+
+\begin{lstlisting}[style=output]
+ small =          10
+ big =  2000000000
+ big + big =  -294967296
+ This result may be incorrect due to integer overflow
+\end{lstlisting}
+
+The correct sum, 4\,000\,000\,000, does not fit in 32 bits: the largest integer is $2^{31}-1 = 2\,147\,483\,647$. On most machines the result simply ``wraps around'': $4\,000\,000\,000 - 2^{32} = -294\,967\,296$. No error message is given, so the program happily goes on with a negative number. The Fortran standard says nothing about what happens on overflow, so you must never rely on this behaviour; make sure your integers stay well inside the allowed range.
+
+Fortran 77 has two different types for floating point variables, called \texttt{real} and \texttt{double precision}. While \texttt{real} is often adequate, some numerical calculations need very high precision and \texttt{double precision} should be used. Usually a real is a 4 byte variable and the double precision is 8 bytes, but this is machine dependent. Some non-standard Fortran versions use the syntax \texttt{real*8} to denote 8 byte floating point variables.
+
+\begin{lstlisting}[style=fortran77]
+      program precision_demo
+      real r_sum, r_val
+      double precision d_sum, d_val
+      integer i
+      
+c This program demonstrates precision differences
+      
+      r_val = 0.1
+      d_val = 0.1D0
+      
+      r_sum = 0.0
+      d_sum = 0.0D0
+      
+c Add 0.1 ten times
+      do 10 i = 1, 10
+         r_sum = r_sum + r_val
+         d_sum = d_sum + d_val
+10    continue
+      
+      write (*,*) 'Expected sum: 1.0'
+      write (*,*) 'Sum using REAL:', r_sum
+      write (*,*) 'Sum using DOUBLE PRECISION:', d_sum
+      write (*,*) 'Difference from 1.0 (REAL):', r_sum - 1.0
+      write (*,*) 'Difference from 1.0 (DOUBLE):', d_sum - 1.0D0
+
+      stop
+      end
+\end{lstlisting}
+
+Output with gfortran:
+
+\begin{lstlisting}[style=output]
+ Expected sum: 1.0
+ Sum using REAL:   1.00000012
+ Sum using DOUBLE PRECISION:  0.99999999999999989
+ Difference from 1.0 (REAL):   1.19209290E-07
+ Difference from 1.0 (DOUBLE):  -1.1102230246251565E-016
+\end{lstlisting}
+
+Neither sum is exactly 1. The reason is that computers store numbers in binary, and 0.1 has no exact binary representation (just as 1/3 has no exact decimal representation), so a tiny error is made each time. A \texttt{real} keeps about 7 significant decimal digits, a \texttt{double precision} about 16. The lesson: never test floating point numbers for exact equality. Instead of \texttt{if (x .EQ. 1.0)} write something like \texttt{if (abs(x - 1.0) .LT. 1.0E-5)}.
+
+\section{The \texttt{parameter} statement}
+
+Some constants appear many times in a program. It is then often desirable to define them only once, in the beginning of the program. This is what the \texttt{parameter} statement is for. It also makes programs more readable. For example, the circle area program should rather have been written like this:
+
+\begin{lstlisting}[style=fortran77]
+      program circle
+      real r, area, pi
+      parameter (pi = 3.14159)
+ 
+c This program reads a real number r and prints
+c the area of a circle with radius r.
+ 
+      write (*,*) 'Give radius r:'
+      read  (*,*) r
+      area = pi*r*r
+      write (*,*) 'Area = ', area
+ 
+      stop
+      end
+\end{lstlisting}
+
+The syntax of the parameter statement is
+
+\begin{lstlisting}[style=fortran77]
+      parameter (name = constant, ... , name = constant)
+\end{lstlisting}
+
+The rules for the \texttt{parameter} statement are:
+
+\begin{itemize}
+    \item The \emph{name} defined in the \texttt{parameter} statement is not a variable but rather a constant. (You cannot change its value at a later point in the program.)
+    \item A \emph{name} can appear in at most one \texttt{parameter} statement.
+    \item The \texttt{parameter} statement(s) must come before the first executable statement.
+\end{itemize}
+
+Some good reasons to use the \texttt{parameter} statement are:
+
+\begin{itemize}
+    \item It helps reduce the number of typos.
+    \item It makes it easier to change a constant that appears many times in a program.
+    \item It increases the readability of your program.
+\end{itemize}
+
+\begin{lstlisting}[style=fortran77]
+      program physics_constants
+      double precision pi, e, c, h, g
+      parameter (pi = 3.14159265358979D0,
+     +           e = 2.71828182845905D0,
+     +           c = 299792458.0D0,      ! Speed of light (m/s)
+     +           h = 6.62607015D-34,     ! Planck's constant (J·s)
+     +           g = 9.80665D0)          ! Gravity (m/s^2)
+      
+c This program demonstrates using multiple parameters
+c for scientific constants
+      
+      write (*,*) 'Mathematical constants:'
+      write (*,*) '  pi =', pi
+      write (*,*) '  e =', e
+      write (*,*) 'Physical constants:'
+      write (*,*) '  Speed of light =', c, 'm/s'
+      write (*,*) '  Planck constant =', h, 'J·s'
+      write (*,*) '  Gravity =', g, 'm/s^2'
+      
+c Cannot change a parameter value:
+c     pi = 3.14   ! This would cause a compilation error
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{The \texttt{implicit} statement}
+
+By default, Fortran uses the implicit typing rule that variables starting with the letters I through N are integer, while all other variables are real. This can be a source of subtle bugs. A much safer approach is to use the \texttt{implicit none} statement, which requires all variables to be explicitly declared:
+
+\begin{lstlisting}[style=fortran77]
+      implicit none
+\end{lstlisting}
+
+This statement must appear before any variable declarations and before the first executable statement. With \texttt{implicit none}, the compiler will generate an error for any undeclared variable.
+
+While \texttt{implicit none} is not part of the ANSI Fortran 77 standard, it is supported by practically all compilers (and it is standard since Fortran 90), and it is highly recommended. \textbf{From now on, all complete programs in this tutorial start with \texttt{implicit none}.} With gfortran you can get the same effect without changing the source code by compiling with the option \texttt{-fimplicit-none}.
+
+In strict Fortran 77, you can change the implicit typing rules using the standard \texttt{implicit} statement. Each of the following lines is an independent example; a letter may receive only one type, so they cannot all appear in the same program unit:
+
+\begin{lstlisting}[style=fortran77]
+c Make every variable double precision:
+      implicit double precision (a-z)
+
+c Keep the default rule, but make names starting with d double:
+      implicit double precision (d)
+\end{lstlisting}
+
+The first form is common in old numerical codes as \texttt{implicit double precision (a-h, o-z)}: names starting with \texttt{i}--\texttt{n} remain integer, all others become double precision. However, it's still better practice to explicitly declare all variables.
+
+\begin{lstlisting}[style=fortran77]
+      program implicit_demo
+      implicit none
+      
+c All variables must be declared when using implicit none
+      integer i, j
+      real x, y
+      
+c Without declarations, these would cause compiler errors:
+c     k = 10
+c     z = 3.14
+      
+      i = 5
+      j = 10
+      x = 2.5
+      y = 3.5
+      
+      write (*,*) i*j, x*y
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{Type Conversion}
+
+Fortran provides several built-in functions for converting between different data types:
+
+\begin{lstlisting}[style=fortran77]
+      program type_conversion
+      implicit none
+      integer i, j
+      real x, y
+      
+c This program demonstrates type conversion
+      
+      i = 5
+      j = 2
+      
+      write (*,*) 'Integer division:', i/j
+      write (*,*) 'Real division:', real(i)/real(j)
+      
+      x = 3.7
+      y = 2.2
+      
+      write (*,*) 'Real values: x =', x, ' y =', y
+      write (*,*) 'Truncated to integers:', int(x), int(y)
+      write (*,*) 'Rounded to integers:', 
+     +             nint(x), nint(y)
+      
+      write (*,*) 'Character to integer:'
+      write (*,*) '  Code for ''A'' =', ichar('A')
+      write (*,*) '  Code for ''a'' =', ichar('a')
+      write (*,*) 'Integer to character:'
+      write (*,*) '  Character with code 66 =', char(66)
+      write (*,*) '  Character with code 98 =', char(98)
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{The \texttt{equivalence} statement}
+
+The \texttt{equivalence} statement allows two or more variables or array elements to share the same memory location. This can be used to save memory (though this is rarely a concern with modern computers) or to create different views of the same data. The syntax is:
+
+\begin{lstlisting}[style=fortran77]
+      equivalence (list1), (list2), ..., (listN)
+\end{lstlisting}
+
+where each \emph{list} is a comma-separated list of variables or array elements that will share the same memory location.
+
+Here's a simple example:
+
+\begin{lstlisting}[style=fortran77]
+      real a, b
+      integer i, j
+      equivalence (a, i), (b, j)
+\end{lstlisting}
+
+In this example, \texttt{a} and \texttt{i} will share the same memory location, as will \texttt{b} and \texttt{j}. Changing the value of \texttt{a} will also change \texttt{i}, and vice versa. Similarly for \texttt{b} and \texttt{j}.
+
+The \texttt{equivalence} statement can also be used with arrays:
+
+\begin{lstlisting}[style=fortran77]
+      real arr1(100), arr2(50)
+      equivalence (arr1(1), arr2(1))
+\end{lstlisting}
+
+In this case, the first 50 elements of \texttt{arr1} will overlap with \texttt{arr2}.
+
+It is important to understand what \texttt{equivalence} does \emph{not} do: it never converts a value. The two names simply give two different interpretations of the same bits in memory. For example, equivalencing the integer 20230415 with a \texttt{character*8} variable does \emph{not} give you the text \texttt{'20230415'}, but a meaningless sequence of bytes (and standard Fortran 77 does not even allow a character variable to be equivalenced with a numeric one). To convert numbers to text and back, use \emph{internal files}, described in Section~\ref{sec:internal-files}.
+
+\subsection{Restrictions on \texttt{equivalence}}
+
+There are several important restrictions on the use of \texttt{equivalence}:
+
+\begin{itemize}
+    \item Character variables may only be equivalenced with other character variables (lengths may differ).
+    \item Two variables that are both in common blocks cannot be equivalenced to each other. A local variable may be equivalenced with a variable in a common block, but then it becomes part of that block, and this must not extend the block backwards (before its first element).
+    \item An equivalence must not require a variable to occupy two different places in memory, e.g.\ \texttt{equivalence (a(1), b(1)), (a(2), b(3))}.
+    \item Dummy arguments of subprograms cannot be equivalenced.
+\end{itemize}
+
+\subsection{Example: Looking at the bits of a real number}
+
+Since \texttt{equivalence} gives two views of the same memory, it can be used to look at how a real number is actually stored. The following program shows the bit pattern of a real number, interpreted as an integer:
+
+\begin{lstlisting}[style=fortran77]
+      program bitpattern
+      implicit none
+      real x
+      integer ix
+      equivalence (x, ix)
+
+      write(*,*) 'Enter a real number:'
+      read(*,*) x
+      write(*,*) 'Value as real:', x
+      write(*,*) 'Binary pattern as integer:', ix
+
+      stop
+      end
+\end{lstlisting}
+
+If you enter 1, the output with gfortran is:
+
+\begin{lstlisting}[style=output]
+ Enter a real number:
+1
+ Value as real:   1.00000000
+ Binary pattern as integer:  1065353216
+\end{lstlisting}
+
+The number 1065353216 is $3F800000$ in hexadecimal, i.e.\ the bits \texttt{0 01111111 00000000000000000000000}: a sign bit (0, positive), an 8-bit exponent (127, which means $2^0$) and a 23-bit fraction (0). This is the IEEE 754 format used by practically all current computers. On a machine with a different floating point format, the integer would be different: programs like this one are not portable.
+
+\subsection{Cautions about \texttt{equivalence}}
+
+While \texttt{equivalence} can be useful in some situations, it should be used with caution:
+
+\begin{itemize}
+    \item It can make code harder to understand and maintain.
+    \item It can introduce subtle bugs, especially when mixing different data types.
+    \item It can interfere with compiler optimizations.
+    \item Results may vary across different compilers or hardware platforms.
+    \item For converting between numbers and text, use internal files (Section~\ref{sec:internal-files}). Fortran 90 also offers the intrinsic function \texttt{transfer}, which copies the bits of one type into another without the need for \texttt{equivalence}.
+\end{itemize}
+
+\section{Character Variables and String Operations}
+
+\begin{lstlisting}[style=fortran77]
+      program string_demo
+      implicit none
+      character*10 first_name
+      character*15 last_name
+      character*30 full_name
+      
+c This program demonstrates character variables
+      
+      first_name = 'John'
+      last_name = 'Smith'
+      
+c Concatenate strings
+      full_name = first_name // ' ' // last_name
+      
+      write (*,*) 'First name: [', first_name, ']'
+      write (*,*) 'Last name: [', last_name, ']'
+      write (*,*) 'Full name: [', full_name, ']'
+      
+c Character strings are fixed length and padded with spaces
+      write (*,*) 'Length of first_name:', len(first_name)
+      write (*,*) 'Length of full_name:', len(full_name)
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch05} that accompanies this tutorial (programs \texttt{ex1.f}, \texttt{ex2.f}, \ldots, and explanations in \texttt{answers.md}).
+
+\begin{enumerate}
+    \item A day has 86400 seconds. Write a program that reads a number of days and prints the corresponding number of seconds, using integer variables. Try 1000 and 30000 days. Why is the second answer wrong? What is the largest number of days for which the program gives the right answer?
+    \item Write a program that adds 0.1 one million times, once in a \texttt{real} variable and once in a \texttt{double precision} variable, and compare both sums with the exact result 100000. Compare with the output of \texttt{precision\_demo} above: why is the error so much larger now?
+    \item Write a program that reads the radius of a circle and prints its circumference and its area. Define $\pi$ only once, with a \texttt{parameter} statement.
+    \item Which of the following are valid variable names in strict Fortran 77? Which of them does gfortran accept? \quad \texttt{x1}, \texttt{1x}, \texttt{total}, \texttt{average}, \texttt{temp\_c}, \texttt{real}, \texttt{my name}, \texttt{I}.
+    \item Without compiling it, predict what this program prints. Then compile it and check. (It has neither \texttt{implicit none} nor declarations, on purpose.)
+\begin{lstlisting}[style=fortran77]
+      program implic
+      n = 3.7
+      x = 7/2
+      y = 7.0/2.0
+      write (*,*) 'n =', n
+      write (*,*) 'x =', x
+      write (*,*) 'y =', y
+      end
+\end{lstlisting}
+    \item Write a program that computes the average of the three integers 7, 8 and 8, first with \texttt{(a + b + c) / 3} and then correctly. Explain the difference.
+    \item Write a program that prints \texttt{int(x)} and \texttt{nint(x)} for $x = 2.7$, $-2.7$, $2.5$ and $-2.5$. What is the rule of each function?
+    \item Run the program \texttt{bitpattern} with the numbers 2.0 and $-1.0$, and explain the results with the IEEE format described above.
+    \item A variable is declared as \texttt{character*5} and another as \texttt{character*10}. What do they contain after assigning \texttt{'Fortran'} to each of them? Check your answer with a program.
+\end{enumerate}

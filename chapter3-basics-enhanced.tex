@@ -1,0 +1,239 @@
+\chapter{Fortran 77 Basics}
+
+A Fortran program is just a sequence of lines of text. The text has to follow a certain \emph{structure} to be a valid Fortran program. Let's start with the simplest possible program:
+
+\begin{lstlisting}[style=fortran77]
+      program hello
+c This is a simple "Hello, World!" program in Fortran 77
+      
+      write (*,*) 'Hello, World!'
+      
+      stop
+      end
+\end{lstlisting}
+
+This program contains the minimum elements required in every Fortran program: a program declaration, executable statements (in this case, just one output statement), and an end marker. It simply displays the text "Hello, World!" to the screen.
+
+Now let's look at a slightly more complex example:
+
+\begin{lstlisting}[style=fortran77]
+      program circle
+      real r, area
+ 
+c This program reads a real number r and prints
+c the area of a circle with radius r.
+ 
+      write (*,*) 'Give radius r:'
+      read  (*,*) r
+      area = 3.14159*r*r
+      write (*,*) 'Area = ', area
+ 
+      stop
+      end
+\end{lstlisting}
+
+The lines that begin with with a "c" are \emph{comments} and have no purpose other than to make the program more readable for humans. Originally, all Fortran programs had to be written in all upper-case letters. Most people now write lower-case since this is more legible, and so will we. You may wish to mix case, but Fortran is not case-sensitive, so "X" and "x" are the same variable.
+
+Here's another example showing basic arithmetic operations:
+
+\begin{lstlisting}[style=fortran77]
+      program arithmetic
+      integer a, b, sum, diff, prod
+      real quotient
+      
+c This program demonstrates basic arithmetic operations
+      
+      a = 15
+      b = 4
+      
+      sum = a + b
+      diff = a - b
+      prod = a * b
+      quotient = real(a) / real(b)
+      
+      write (*,*) 'a = ', a, ' b = ', b
+      write (*,*) 'Sum: ', sum
+      write (*,*) 'Difference: ', diff
+      write (*,*) 'Product: ', prod
+      write (*,*) 'Quotient: ', quotient
+      
+      stop
+      end
+\end{lstlisting}
+
+Notice in this example how we convert integers to real values before division to ensure we get a decimal result rather than truncated integer division.
+
+\section{Program organization}
+
+A Fortran program generally consists of a main program (or driver) and possibly several subprograms (procedures or subroutines). For now we will place all the statements in the main program; subprograms will be treated later. The structure of a main program is:
+
+\begin{lstlisting}[style=fortran77]
+      program name
+
+      declarations
+
+      statements
+
+      stop
+      end
+\end{lstlisting}
+
+In this tutorial, words that are in \emph{italics} should not be taken as literal text, but rather as a description of what belongs in their place.
+
+The \texttt{stop} statement is optional and may seem superfluous since the program will stop when it reaches the end anyway, but it is recommended to always terminate a program with the \texttt{stop} statement to emphasize that the execution flow stops there.
+
+You should note that you cannot have a variable with the same name as the program.
+
+Here's a practical example showing a temperature conversion program:
+
+\begin{lstlisting}[style=fortran77]
+      program temperature
+      real fahr, celsius
+      
+c This program converts Fahrenheit to Celsius
+      
+      write (*,*) 'Enter temperature in Fahrenheit:'
+      read (*,*) fahr
+      
+      celsius = (fahr - 32.0) * 5.0 / 9.0
+      
+      write (*,*) fahr, ' degrees Fahrenheit equals'
+      write (*,*) celsius, ' degrees Celsius'
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{Column position rules}
+
+Fortran 77 is \emph{not} a free-format language, but has a very strict set of rules for how the source code should be formatted. The most important rules are the column position rules:
+
+\begin{lstlisting}[style=fortran77]
+Col. 1    : Blank, or a "c" or "*" for comments
+Col. 1-5  : Statement label (optional)
+Col. 6    : Continuation of previous line (optional)
+Col. 7-72 : Statements
+Col. 73-80: Sequence number (optional, rarely used today)
+\end{lstlisting}
+
+Most lines in a Fortran 77 program starts with 6 blanks and ends before column 72, i.e. only the statement field is used.
+
+\section{Comments}
+
+A line that begins with the letter "c" or an asterisk in the first column is a comment. Comments may appear anywhere in the program. Well-written comments are crucial to program readability. Commercial Fortran codes often contain about 50\% comments. You may also encounter Fortran programs that use the exclamation mark (!) for comments. This is not a standard part of Fortran 77, but is supported by several Fortran 77 compilers and is explicitly allowed in Fortran 90. When understood, the exclamation mark may appear anywhere on a line (except in positions 2-6).
+
+Here's an example demonstrating different comment styles:
+
+\begin{lstlisting}[style=fortran77]
+      program comments
+c Traditional Fortran 77 comment with 'c' in column 1
+* Alternate Fortran 77 comment with '*' in column 1
+      
+      write (*,*) 'This program demonstrates comment styles'
+c     write (*,*) 'This line is commented out'
+* The next line shows inline comments (non-standard but commonly supported)
+      write (*,*) 'Hello' ! This is an inline comment
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{Continuation}
+
+Sometimes, a statement does not fit into the 66 available columns of a single line. One can then break the statement into two or more lines, and use the continuation mark in position 6. Example:
+
+\begin{lstlisting}[style=fortran77]
+c23456789 (This demonstrates column position!)
+
+c The next statement goes over two physical lines
+      area = 3.14159265358979
+     +       * r * r
+\end{lstlisting}
+
+Any character can be used instead of the plus sign as a continuation character. It is considered good programming style to use either the plus sign, an ampersand, or digits (using 2 for the second line, 3 for the third, and so on).
+
+Here's a more practical example of using continuation lines for a complex calculation:
+
+\begin{lstlisting}[style=fortran77]
+      program long_equation
+      real x, y, result
+      
+c This program calculates a complex formula using continuation lines
+      
+      x = 2.5
+      y = 3.7
+      
+      result = 3.14159265358979 * x**2 + 2.71828182846 * y**2 
+     +         + 1.4142135623 * x * y + (x + y) / 2.0
+     +         - (x - y)**2
+      
+      write (*,*) 'x = ', x, ' y = ', y
+      write (*,*) 'Result = ', result
+      
+      stop
+      end
+\end{lstlisting}
+
+\section{Blank spaces}
+
+Blank spaces are ignored in Fortran 77. So if you remove all blanks in a Fortran 77 program, the program is still acceptable to a complier but almost unreadable to humans.
+
+\section{Putting it all together}
+
+Let's conclude with a final example that combines several of the concepts we've covered. This program calculates both the area and perimeter of a rectangle:
+
+\begin{lstlisting}[style=fortran77]
+      program rectangle
+      real length, width, area, perimeter
+      
+c This program computes the area and perimeter of a rectangle
+      
+      write (*,*) 'Enter rectangle length:'
+      read (*,*) length
+      write (*,*) 'Enter rectangle width:'
+      read (*,*) width
+      
+      area = length * width
+      perimeter = 2.0 * (length + width)
+      
+      write (*,*) 'Rectangle dimensions: ', length, ' x ', width
+      write (*,*) 'Area: ', area
+      write (*,*) 'Perimeter: ', perimeter
+      
+      stop
+      end
+\end{lstlisting}
+
+This example demonstrates input/output operations, variable declarations, comments, and arithmetic calculations---all fundamental aspects of Fortran 77 programming.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch03} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that reads a temperature in degrees Celsius and prints it in degrees Fahrenheit, using $F = \frac{9}{5}C + 32$. Test it with 100 degrees (the answer is 212). Be careful to write \texttt{9.0/5.0} and not \texttt{9/5}; Chapter 6 explains why.
+    \item Write a program that reads three numbers and prints their sum and their average.
+    \item The following program does not compile, because some of its lines break the column rules. Find the errors and correct them.
+\begin{lstlisting}[style=fortran77]
+     program errors
+      real base, height
+      base = 2.0
+   height = 3.0
+* Area of a triangle
+      write (*,*) 'Area of the triangle:',
+      0.5*base*height
+      end
+\end{lstlisting}
+    \item Write a program that reads the base and the height of a triangle and prints its area. Start the program with a comment that explains what it does, and split the statement that computes the area over two lines with a continuation line.
+    \item Type in the following program, taking care that the number \texttt{25} starts exactly in column 72 (the comment line is a ruler that shows the last digit of each column number). Compile it, run it, and explain the result. Then compile it again with the option \texttt{-Wall}.
+\begin{lstlisting}[style=fortran77,basicstyle=\ttfamily\scriptsize]
+      program trunc
+      real a, b, total
+      a = 1.0
+      b = 2.0
+c23456789012345678901234567890123456789012345678901234567890123456789012
+      total = a + b +                                                  25
+      write (*,*) 'total =', total
+      end
+\end{lstlisting}
+\end{enumerate}

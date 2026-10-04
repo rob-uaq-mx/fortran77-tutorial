@@ -1,0 +1,215 @@
+\chapter{Arrays in subprograms}
+
+Fortran subprogram calls are based on \emph{call by reference}. This means that the calling parameters are not copied to the called subprogram, but rather that the \emph{addresses} of the parameters (variables) are passed. This saves a lot of memory space when dealing with arrays. No extra storage is needed as the subroutine operates on the same memory locations as the calling (sub-)program. However, you as a programmer have to know about this and take it into account.
+
+It is possible to declare local arrays in Fortran subprograms, but this feature is rarely used. Typically, all arrays are declared (and dimensioned) in the main program and then passed on to the subprograms as needed.
+
+\section{Variable length arrays}
+
+A basic vector operation is the \emph{saxpy} operation. This calculates the expression
+
+\begin{lstlisting}[style=fortran77]
+      y := alpha*x + y
+\end{lstlisting}
+
+where alpha is a scalar but x and y are vectors. Here is a simple subroutine for this:
+
+\begin{lstlisting}[style=fortran77]
+      subroutine saxpy (n, alpha, x, y)
+      implicit none
+      integer n
+      real alpha, x(*), y(*)
+c
+c Saxpy: Compute y := alpha*x + y,
+c where x and y are vectors of length n (at least).
+c
+c Local variables
+      integer i
+c
+      do 10 i = 1, n
+         y(i) = alpha*x(i) + y(i)
+   10 continue
+c
+      return
+      end
+\end{lstlisting}
+
+The only new feature here is the use of the asterisk in the declarations \emph{x(*)} and \emph{y(*)}. This notation says that x and y are arrays of arbitrary length. The advantage of this is that we can use the same subroutine for all vector lengths. Recall that since Fortran is based on call-by-reference, no additional space is allocated but rather the subroutine works directly on the array elements from the calling routine/program. It is the responsibility of the programmer to make sure that the vectors x and y really have been declared to have length n or more in some other program unit. A common error in Fortran 77 occurs when you try to access out-of-bounds array elements.
+
+We could also have declared the arrays like this:
+
+\begin{lstlisting}[style=fortran77]
+      real x(n), y(n)
+\end{lstlisting}
+
+Most programmers prefer to use the asterisk notation to emphasize that the "real array length" is unknown. Some old Fortran 77 programs may declare variable length arrays like this:
+
+\begin{lstlisting}[style=fortran77]
+      real x(1), y(1)
+\end{lstlisting}
+
+This is legal syntax even if the array lengths are greater than one! But this is poor programming style and is strongly discouraged.
+
+\section{Passing subsections of arrays}
+
+Next we want to write a subroutine for matrix-vector multiplication. There are two basic ways to do this, either by using inner products or saxpy operations. Let us be modular and re-use the saxpy code from the previous section. A simple code is given below.
+
+\begin{lstlisting}[style=fortran77]
+      subroutine matvec (m, n, A, lda, x, y)
+      implicit none
+      integer m, n, lda
+      real x(*), y(*), A(lda,*)
+c
+c Compute y = A*x, where A is m by n and stored in an array
+c with leading dimension lda.
+c
+c Local variables
+      integer i, j
+      
+c Initialize y
+      do 10 i = 1, m
+         y(i) = 0.0
+   10 continue
+
+c Matrix-vector product by saxpy on columns in A.
+c Notice that the length of each column of A is m, not n!
+      do 20 j = 1, n
+         call saxpy (m, x(j), A(1,j), y)
+   20 continue
+
+      return
+      end
+\end{lstlisting}
+
+There are several important things to note here. First, note that even if we have written the code as general as possible to allow for arbitrary dimensions m and n, we still need to specify the leading dimension of the matrix A. The variable length declaration (*) can only be used for the \emph{last} dimension of an array! The reason for this is the way Fortran 77 stores multidimensional arrays (see the section on arrays).
+
+When we compute y = A*x by saxpy operations, we need to access columns of A. The j'th column of A is A(1:m,j). However, in Fortran 77 we cannot use such subarray syntax (but it is encouraged in Fortran 90!). So instead we provide a \emph{pointer} to the first element in the column, which is A(1,j) (it is not really a pointer, but it may be helpful to think of it as if it were). We know that the next memory locations will contain the succeeding array elements in this column. The saxpy subroutine will treat A(1,j) as the first element of a vector, and does not know that this vector happens to be a column of a matrix.
+
+Finally, note that we have stuck to the convention that matrices have m rows and n columns. The index i is used as a row index (1 to m) while the index j is used as a column index (1 to n). Most Fortran programs handling linear algebra use this notation and it makes it a lot easier to read the code!
+
+\section{Different dimensions}
+
+Sometimes it can be beneficial to treat a 1-dimensional array as a 2-dimensional array and vice versa. This is fairly simple to do in Fortran 77, some will say it is \emph{too} easy!
+
+Let us look at a very simple example. Another basic vector operation is \emph{scaling}, i.e. multiplying each element in a vector by the same constant. Here is a subroutine for this:
+
+\begin{lstlisting}[style=fortran77]
+      subroutine scale(n, alpha, x)
+      implicit none
+      integer n
+      real alpha, x(*)
+c
+c Local variables
+      integer i
+
+      do 10 i = 1, n
+         x(i) = alpha * x(i)
+   10 continue
+
+      return
+      end
+\end{lstlisting}
+
+Now suppose we have a m by n matrix we want to scale. Instead of writing a new subroutine for this, we can simply treat the matrix as a vector and use the subroutine \texttt{scale}. A simple version is given first:
+
+\begin{lstlisting}[style=fortran77]
+      integer m, n
+      parameter (m=10, n=20)
+      real alpha, A(m,n)
+
+c Some statements here define A...
+
+c Now we want to scale A
+      call scale(m*n, alpha, A)
+\end{lstlisting}
+
+Note that this example works because we assume the declared dimension of A equals the actual dimension of the matrix stored in A. This does not hold in general. Often the leading dimension lda is different from the actual dimension m, and great care must be taken to handle this correctly. Here is a more robust subroutine for scaling a matrix that uses the subroutine \texttt{scale}:
+
+\begin{lstlisting}[style=fortran77]
+      subroutine mscale(m, n, alpha, A, lda)
+      implicit none
+      integer m, n, lda
+      real alpha, A(lda,*)
+c
+c Local variables
+      integer j
+
+      do 10 j = 1, n
+         call scale(m, alpha, A(1,j) )
+   10 continue
+
+      return
+      end
+\end{lstlisting}
+
+This version works even when m is not equal to lda since we scale one column at a time and only process the m first elements of each column (leaving the rest untouched).
+
+To see the difference, the following program stores a 2 by 2 matrix (all ones) in a 3 by 2 array, so that $m = 2$ but $lda = 3$, and scales it by 10, first with \texttt{mscale} and then with the ``simple version'' \texttt{scale(m*n, alpha, A)}. The program must be compiled together with the subroutines \texttt{scale} and \texttt{mscale} above.
+
+\begin{lstlisting}[style=fortran77]
+      program sclmat
+      implicit none
+      integer lda, m, n, i, j
+      parameter (lda=3, m=2, n=2)
+      real alpha, A(lda,n)
+
+      alpha = 10.0
+
+      call fill(A, lda, n)
+      call mscale(m, n, alpha, A, lda)
+      write(*,*) 'With mscale:'
+      do 10 i = 1, lda
+         write(*,*) (A(i,j), j=1,n)
+   10 continue
+
+      call fill(A, lda, n)
+      call scale(m*n, alpha, A)
+      write(*,*) 'With scale(m*n, alpha, A):'
+      do 20 i = 1, lda
+         write(*,*) (A(i,j), j=1,n)
+   20 continue
+
+      stop
+      end
+
+      subroutine fill(A, lda, n)
+      implicit none
+      integer lda, n, i, j
+      real A(lda,n)
+
+c Set all the elements of the array (not only the matrix) to 1
+      do 20 j = 1, n
+         do 10 i = 1, lda
+            A(i,j) = 1.0
+   10    continue
+   20 continue
+
+      return
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ With mscale:
+   10.0000000       10.0000000
+   10.0000000       10.0000000
+   1.00000000       1.00000000
+ With scale(m*n, alpha, A):
+   10.0000000       10.0000000
+   10.0000000       1.00000000
+   10.0000000       1.00000000
+\end{lstlisting}
+
+The third row is not part of the matrix. \texttt{mscale} correctly leaves it alone. \texttt{scale(m*n, alpha, A)}, on the other hand, simply scales the first $m \cdot n = 4$ elements in memory. Since arrays are stored by columns, these are A(1,1), A(2,1), A(3,1) and A(1,2): one element outside the matrix is changed, and one element of the matrix, A(2,2), is not.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch12} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a real function \texttt{vnorm(n, x)} which returns the Euclidean norm $\sqrt{x_1^2 + \cdots + x_n^2}$ of a vector. Use it to compute the norm of each column of an $m \times n$ matrix stored in an array whose leading dimension is larger than $m$. (Hint: pass \texttt{A(1,j)}.)
+    \item Write a subroutine \texttt{transp(m, n, A, lda, B, ldb)} that stores the transpose of the $m \times n$ matrix \texttt{A} in \texttt{B}. Test it with arrays whose leading dimensions are larger than the matrices they contain.
+    \item Write a subroutine \texttt{matvc2(m, n, A, lda, x, y)} that computes $y = Ax$ by \emph{inner products}: $y_i = \sum_{j=1}^{n} a_{ij} x_j$. Check that it gives the same result as \texttt{matvec}. Why can \texttt{matvec} pass a column of \texttt{A} to \texttt{saxpy} as if it were a vector, while a row cannot be passed in the same way?
+    \item In the program \texttt{sclmat}, change the leading dimension to \texttt{lda=4} (keeping $m = n = 2$). Without running the program, which elements of \texttt{A} does \texttt{call scale(m*n, alpha, A)} change now? Check your answer by running the program.
+\end{enumerate}

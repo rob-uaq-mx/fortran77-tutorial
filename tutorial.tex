@@ -1,0 +1,107 @@
+\documentclass[11pt,a4paper]{book}
+
+% Basic packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{enumitem}
+% Colored links instead of boxes (the boxes look bad when printed)
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue!60!black}
+
+% Settings of the listings package for Fortran 77 code
+\usepackage{listings}
+% Default for all listings (also bash, make, ...): typewriter font, so that
+% commands such as --version are shown (and copied) correctly
+\lstset{basicstyle=\ttfamily\small, columns=fullflexible, keepspaces=true,
+        breaklines=true}
+% Program output, as printed on the screen
+\lstdefinestyle{output}{
+    basicstyle=\ttfamily\footnotesize,
+    columns=fixed,
+    basewidth=0.525em,
+    breaklines=true,
+    xleftmargin=2em
+}
+\lstdefinestyle{fortran77}{
+    language={[77]Fortran},
+    % footnotesize: the 72 columns of a fixed-form line fit in the page
+    basicstyle=\ttfamily\footnotesize,
+    columns=fixed,
+    basewidth=0.525em,
+    keywordstyle=\color{blue},
+    stringstyle=\color{magenta},
+    commentstyle=\color{green!60!black},
+    % Fixed-form comments: c, C or * in column 1 only
+    morecomment=[f]{c},
+    morecomment=[f]{C},
+    morecomment=[f]{*},
+    morecomment=[l]{!},
+    frame=single,
+    breaklines=true,
+    tabsize=6,
+    showstringspaces=false,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numberstyle=\tiny,
+    numbersep=6pt,
+    xleftmargin=1em,
+    xrightmargin=-1em,
+    framesep=2pt,
+    morekeywords={program,end,subroutine,function,real,integer,double,precision,
+                  common,data,parameter,logical,if,then,else,elseif,endif,
+                  do,continue,stop,call,return,dimension,complex,character,
+                  format,write,read,print,open,close}
+}
+
+% Document settings
+\title{Fortran 77 Tutorial}
+% The original authors and copyright must be retained (see the preface).
+% Accents are written with LaTeX commands: with xelatex and the T1 fonts
+% used here, literal accented characters may be lost.
+\author{Erik Boman, Sarah T. Whitlock, Paul H. Hargrove\\[2ex]
+  \normalsize Adapted and extended by Roberto Augusto G\'omez Loenzo (2026)}
+\date{Copyright \textcopyright{} 1995-7 by Stanford University\\[1ex]
+  \small New material \textcopyright{} 2026 Roberto Augusto G\'omez Loenzo,\\
+  licensed under \mbox{CC BY-NC-SA 4.0}\\
+  (see ``A note on this edition'' in the preface)}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+% All the chapters
+\include{chapter1-preface}
+\include{chapter2-whatis}
+\include{chapter3-basics-enhanced} % extra examples
+\include{chapter4-gfortran}
+\include{chapter5-variables-enhanced2}
+\include{chapter6-expressions-enhanced}
+\include{chapter7-logical}
+\include{chapter8-if}
+\include{chapter9-loops-enhanced}
+\include{chapter10-arrays}
+\include{chapter11-subprograms-enhanced}
+\include{chapter12-arrays2}
+\include{chapter13-common-enhanced}
+\include{chapter14-data}
+\include{chapter15-files-enhanced}
+\include{chapter16-readwrite}
+\include{chapter17-format-enhanced}
+\include{chapter18-num-soft}
+\include{chapter18.1-blas}
+\include{chapter18.2-lapack}
+\include{chapter18.3-libraries}
+\include{chapter18.4-search}
+\include{chapter19-style}
+\include{chapter20-debug}
+\include{chapter21-weblinks}
+
+\end{document}

@@ -1,0 +1,38 @@
+\section{Using libraries}
+
+A Fortran package of subprograms may contain hundreds of files. It is very slow and inconvenient to recompile these files every time you want to use any of the subroutines. You can avoid this by making a \emph{library file}. A library is a collection of compiled object files, so you only have to compile your own main (driver) program and then link it with the library. (Linking is much faster than compiling.)
+
+Static libraries have file names starting with \texttt{lib} and ending in \texttt{.a}. Libraries installed on the system (for example with the package manager of a Linux distribution) are usually in directories such as \texttt{/usr/lib} or \texttt{/usr/local/lib}, where the compiler finds them automatically. For example, if the BLAS library is installed as \texttt{libblas.a} (or as a shared library \texttt{libblas.so}), you use the \texttt{-l} option to link it together with your main program, e.g.
+
+\begin{lstlisting}[language=bash]
+gfortran main.f -lblas -o main
+\end{lstlisting}
+
+Note that you write \texttt{-lblas}, not \texttt{-llibblas.a}: the compiler adds the prefix \texttt{lib} and the extension itself. You can link several files with several libraries at the same time if you wish:
+
+\begin{lstlisting}[language=bash]
+gfortran main.f mysub.f -llapack -lblas -o main
+\end{lstlisting}
+
+The order you list the files and libraries is significant: the linker reads them from left to right, and takes from each library only the routines that are needed by the files read \emph{before} it. Therefore libraries must come after the programs that use them, and in the example above \texttt{-llapack} should be listed before \texttt{-lblas}, since LAPACK calls BLAS routines.
+
+\subsection{Creating your own library}
+
+If you want to create your own library, you compile the source code to object code and then collect all the object files into one library file with the program \texttt{ar}. As an example, let us put the subroutines \texttt{saxpy}, \texttt{matvec}, \texttt{scale} and \texttt{mscale} of Chapter 12, each in its own file, into a library called \texttt{libmyla.a}:
+
+\begin{lstlisting}[language=bash]
+gfortran -c saxpy.f matvec.f scale.f mscale.f
+ar rcs libmyla.a saxpy.o matvec.o scale.o mscale.o
+\end{lstlisting}
+
+The options \texttt{rcs} of \texttt{ar} mean: \emph{r}eplace (or add) the files in the library, \emph{c}reate the library if it does not exist, and write an index of the routines (on older systems the index was made with a separate command, \texttt{ranlib}). The command \texttt{ar t libmyla.a} lists the contents of a library. If you have the library file in the current directory, you can link with it as follows; the option \texttt{-L.} tells the linker to look for libraries also in the current directory (``\texttt{.}''):
+
+\begin{lstlisting}[language=bash]
+gfortran sclmat.f -L. -lmyla -o sclmat
+\end{lstlisting}
+
+Here \texttt{sclmat.f} is the test program of Chapter 12. If you put \texttt{-L. -lmyla} \emph{before} \texttt{sclmat.f}, the linker reports errors such as \emph{undefined reference to `mscale\_'}: when it read the library, no routine from it was needed yet.
+
+(The trailing underscore in \texttt{mscale\_} is added by gfortran to the names of all external routines; you will see it in the error messages of the linker, and you need to know about it if you ever call Fortran from C.)
+
+One advantage of libraries is that you only compile them once but you can use them many times. The commands above work in the same way on Linux, macOS and Windows (with MinGW or MSYS2).

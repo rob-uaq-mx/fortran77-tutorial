@@ -1,0 +1,96 @@
+\chapter{Debugging hints}
+
+A large part of the time it takes to develop software is spent on debugging and testing. This shows how important it is to write good code in the first place: declare all variables, use \texttt{implicit none}, keep subprograms small, and test each of them as soon as it is written.
+
+Still, we all discover \emph{bugs} from time to time. Here are some hints for how to track them down.
+
+\section{Useful compiler options}
+
+Most Fortran compilers have a set of options that make the compiler check more things, either when it compiles the program or while the program runs. The most useful ones for gfortran are:
+
+\begin{description}
+    \item[\texttt{-Wall}] Turns on the most important warnings: unused and uninitialized variables, lines longer than 72 columns, implicit conversions that lose information, and more. Read the warnings!
+    \item[\texttt{-fimplicit-none}] Has the same effect as \texttt{implicit none} in every program unit.
+    \item[\texttt{-fcheck=all}] Turns on all run-time checks, in particular array bounds checking (\texttt{-fcheck=bounds}). The program becomes slower, so use it while developing and testing.
+    \item[\texttt{-g}] Includes debugging information, so that error messages and debuggers can refer to line numbers of your source code.
+    \item[\texttt{-fbacktrace}] When the program stops with a run-time error, prints the sequence of calls that led to the error (on by default in recent versions of gfortran).
+    \item[\texttt{-ffpe-trap=invalid,zero,overflow}] Stops the program at the first invalid floating point operation (such as the square root of a negative number), division by zero, or overflow, instead of silently continuing with the special values \texttt{NaN} (``not a number'') or \texttt{Infinity}.
+    \item[\texttt{-finit-real=snan}] Initializes all real variables with a special ``signaling NaN''. Together with \texttt{-ffpe-trap=invalid}, this makes the program stop when it uses a real variable that was never given a value.
+    \item[\texttt{-std=f95}] Reports features that are not standard Fortran 95, which includes all the non-standard extensions to Fortran 77 and the features that were deleted from the language.
+\end{description}
+
+A good combination while developing a program is
+
+\begin{lstlisting}[language=bash]
+gfortran -g -Wall -fcheck=all -ffpe-trap=invalid,zero,overflow prog.f -o prog
+\end{lstlisting}
+
+As an example of what the checks can do, consider this program, which writes one element beyond the end of an array:
+
+\begin{lstlisting}[style=fortran77]
+      program bounds
+      implicit none
+      real x(10)
+      integer i
+
+      do 10 i = 1, 11
+         x(i) = real(i)
+   10 continue
+      write(*,*) x(1)
+
+      stop
+      end
+\end{lstlisting}
+
+Compiled without options, the program may crash with a message that does not say much (such as \emph{Segmentation fault}), or, worse, it may run to the end and silently overwrite some other variable. With \texttt{-g -fcheck=bounds} the problem is reported exactly:
+
+\begin{lstlisting}[style=output]
+At line 7 of file bounds.f
+Fortran runtime error: Index '11' of dimension 1 of array 'x' above upper bound of 10
+\end{lstlisting}
+
+In this simple case, a recent gfortran even notices the problem while compiling, if you use \texttt{-Wall}: \emph{Warning: Array reference at (1) out of bounds (11 > 10) in loop}. In real programs, where the bounds are only known at run time, the run-time check is what saves you.
+
+Similarly, a program that divides by zero or takes the square root of a negative number normally continues and prints \texttt{Infinity} or \texttt{NaN}, which may then spread through all later results. Compiled with \texttt{-g -ffpe-trap=invalid,zero,overflow}, it stops at the faulty operation:
+
+\begin{lstlisting}[style=output]
+Program received signal SIGFPE: Floating-point exception - erroneous arithmetic operation.
+\end{lstlisting}
+
+followed by a backtrace that shows where it happened.
+
+\section{Some common errors}
+
+Here are some common errors to watch out for:
+
+\begin{itemize}
+    \item Make sure your lines end at column 72. The rest is ignored, without any error message unless you compile with \texttt{-Wall}! For example, if a statement \texttt{total = a + b + 25} is written so that the \texttt{2} of \texttt{25} is in column 72, the \texttt{5} in column 73 is simply dropped: the program computes \texttt{a + b + 2}, and gfortran only warns about it (\emph{Line truncated}) with \texttt{-Wall}.
+    \item Do your argument lists in the calling and the called program match, in number, order and type? The compiler cannot check this when the subprograms are in different files.
+    \item Have you declared the type of every function you call (Chapter 11)?
+    \item Have you passed a constant to a subprogram that changes its argument (Chapter 11)?
+    \item Do your common blocks match?
+    \item Have you done integer division when you wanted real division?
+    \item Are your array indices within bounds? Do you pass the correct leading dimension?
+    \item Does a variable keep its value between calls only because you forgot \texttt{save}?
+    \item Do you compare floating point numbers for exact equality?
+    \item Have you typed an \emph{o} when you meant 0, an \emph{l} when you meant 1?
+\end{itemize}
+
+\section{Debugging tools}
+
+If you have a bug, you have to try to locate it. Syntax errors are easy to find: the compiler tells you where they are. The problem is when you have run-time errors. The old-fashioned way to find errors is to add \emph{write} statements in your code and try to track the values of your variables. This still works, and is often the quickest method.
+
+A more powerful tool is a \emph{debugger}. With a debugger you can step through a program line by line or define your own break points, you can display the values of the variables you want to monitor, and much more. The standard debugger for gfortran is \emph{gdb}, the GNU debugger. Compile your program with \texttt{-g} (and preferably without optimization) and start it with \texttt{gdb ./prog}; Chapter 4 lists the most important commands. Most integrated development environments, such as Visual Studio Code with a Fortran extension, offer a graphical interface to gdb.
+
+On Linux, the tool \emph{Valgrind} (\url{https://valgrind.org}) can find errors in the use of memory, such as reading variables that were never initialized, even when you do not know where to look.
+
+\section{Exercises}
+
+The programs for these exercises are in the directory \texttt{code/checks}, and the solutions in \texttt{code/exercises/ch20}, that accompany this tutorial.
+
+\begin{enumerate}
+    \item The program \texttt{checks/col72.f} should print 28, the sum of 1, 2 and 25. Run it. What does it print, and why? Compile it again with \texttt{-Wall}. (Look at the columns of the assignment to \texttt{total}.)
+    \item The program \texttt{checks/fpe.f} reads a number $x$ and computes $y = \sqrt{x}$ and $z = 2y + 1$. Run it with the input $-1$, first compiled without options and then with \texttt{-g -ffpe-trap=invalid}. What is the difference? Then write a version that checks the argument and prints a message instead.
+    \item The program \texttt{checks/uninit.f} sums the numbers from 1 to 10 in a variable \texttt{s}, but never gives \texttt{s} an initial value. Run it compiled without options, and then with \texttt{-g -finit-real=snan -ffpe-trap=invalid}. Why is the first result so dangerous?
+    \item The program \texttt{checks/buggy.f} should print the mean (4.0) and the sample variance (2.0) of five numbers, but it has three errors. Find them, first by compiling with \texttt{-Wall} and then with \texttt{-fimplicit-none}, and finally by reading the code carefully. Which errors can the compiler find, and which ones only you?
+\end{enumerate}

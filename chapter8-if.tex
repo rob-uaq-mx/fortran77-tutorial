@@ -1,0 +1,68 @@
+\chapter{The \texttt{if} statements}
+
+An important part of any programming language are the \emph{conditional statements}. The most common such statement in Fortran is the \texttt{if} statement, which actually has several forms. The simplest one is the logical \texttt{if} statement:
+
+\begin{lstlisting}[style=fortran77]
+      if (logical expression) executable statement
+\end{lstlisting}
+
+This has to be written on one line. This example finds the absolute value of x:
+
+\begin{lstlisting}[style=fortran77]
+      if (x .LT. 0) x = -x
+\end{lstlisting}
+
+If more than one statement should be executed inside the \texttt{if}, then the following syntax should be used:
+
+\begin{lstlisting}[style=fortran77]
+      if (logical expression) then
+         statements
+      endif
+\end{lstlisting}
+
+The most general form of the \texttt{if} statement has the following form:
+
+\begin{lstlisting}[style=fortran77]
+      if (logical expression) then
+         statements
+      elseif (logical expression) then
+         statements
+       :
+       :
+      else
+         statements
+      endif
+\end{lstlisting}
+
+The execution flow is from top to bottom. The conditional expressions are evaluated in sequence until one is found to be true. Then the associated statements are executed and the control resumes after the \texttt{endif}.
+
+\section{Nested \texttt{if} statements}
+
+\texttt{if} statements can be nested in several levels. To ensure readability, it is important to use proper indentation. Here is an example:
+
+\begin{lstlisting}[style=fortran77]
+      if (x .GT. 0) then
+         if (x .GE. y) then
+            write(*,*) 'x is positive and x >= y'
+         else
+            write(*,*) 'x is positive but x < y'
+         endif
+      elseif (x .LT. 0) then
+         write(*,*) 'x is negative'
+      else
+         write(*,*) 'x is zero'
+      endif
+\end{lstlisting}
+
+You should avoid nesting many levels of \texttt{if} statements since things get hard to follow.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch08} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that reads three numbers and prints the largest one, using only \texttt{if} statements.
+    \item Write a program that finds the real roots of the equation $ax^2 + bx + c = 0$. Your program should distinguish four cases: two different roots, one (double) root, no real roots, and $a = 0$ (not a quadratic equation). The square root is computed by the intrinsic function \texttt{sqrt}.
+    \item A year is a leap year if it is divisible by 4, except the years divisible by 100, which are leap years only if they are also divisible by 400. Write a program that reads a year and says whether it is a leap year, using a single logical expression stored in a \texttt{logical} variable. (The remainder of the division of \texttt{a} by \texttt{b} is \texttt{mod(a, b)}.) Test it with 1900, 2000, 2024 and 2026.
+    \item Write a program that reads a score between 0 and 100 and prints the corresponding letter grade: A for 90 or more, B for 80 to 89, C for 70 to 79, D for 60 to 69 and F below 60. Scores outside the range 0--100 should be rejected with a message. Use an \texttt{if}-\texttt{elseif} chain.
+\end{enumerate}

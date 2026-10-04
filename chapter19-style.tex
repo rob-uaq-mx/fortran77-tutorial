@@ -1,0 +1,102 @@
+\chapter{Fortran programming style}
+
+There are many different programming styles, but here are some general guidelines that are fairly non-controversial.
+
+\section{Portability}
+
+To ensure portability, use only standard Fortran 77, plus a small number of extensions that are supported by every compiler in use today. The extensions used in this tutorial are:
+
+\begin{itemize}
+    \item lower case letters;
+    \item \texttt{implicit none};
+    \item names longer than six characters and names containing underscores;
+    \item comments starting with \texttt{!} at the end of a line;
+    \item the \texttt{include} statement, \texttt{do while} and \texttt{enddo}, \texttt{NAMELIST} and the \texttt{POSITION} specifier, which we pointed out where they were used.
+\end{itemize}
+
+All of them are standard in Fortran 90 and later. Avoid other extensions, such as \texttt{real*8} or compiler-specific functions, unless you really need them. Compiling your program with more than one compiler, or with \texttt{-std=f95 -Wall} with gfortran, is a good way to discover unintended non-standard code.
+
+\section{Program structure}
+
+The overall program structure should be modular. Each subprogram should solve a well-defined task. Many people prefer to write each subprogram in a separate file.
+
+\section{Comments}
+
+Write legible code, but also add comments in the source explaining what is happening! It is especially important to have a good header for each subprogram that explains each input/output argument and what the subprogram does. The header of the LAPACK routine \texttt{SGESV} in Chapter 18 is an excellent model.
+
+\section{Indentation}
+
+Always use proper indentation for loops and if blocks as demonstrated in this tutorial.
+
+\section{Variables}
+
+Always declare all variables, and use \texttt{implicit none} to make the compiler check that you did (Chapter 11 shows what can happen otherwise). If you must write strictly standard Fortran 77, stick to a maximum of 6 characters for names, or at the very least make sure the first 6 characters are unique.
+
+Choose \texttt{double precision} for floating point computations unless you have a good reason to use \texttt{real}, and never test floating point numbers for exact equality (Chapter 5).
+
+\section{Subprograms}
+
+Never let functions have ``side effects'', i.e. do not change the value of the input parameters. Use subroutines in such cases.
+
+In the declarations, separate parameters, common blocks, and local variables.
+
+Minimize the use of common blocks. If a local variable must keep its value between calls, declare it with \texttt{save}.
+
+Never pass a constant or an expression as an argument that the subprogram may change (Chapter 11).
+
+\section{Goto}
+
+Minimize the use of \emph{goto}. Unfortunately it is necessary to use \emph{goto} in some loops since \emph{while} is not standard Fortran 77; when you do, use the patterns of Chapter 9, so that the structure of the loop is clear. Avoid the arithmetic \texttt{if}, the assigned \texttt{goto} and alternate returns in new code.
+
+\section{Arrays}
+
+In many cases it is best to declare all large arrays in the main program and then pass them as arguments to the various subroutines. This way all the space allocation is done in one place. Remember to pass the leading dimensions. Avoid unnecessary ``reshaping'' of matrices.
+
+Check array sizes before you use them, as the program of Section~\ref{sec:points} does, and use the compiler option \texttt{-fcheck=bounds} while you develop your program.
+
+\section{Efficiency concerns}
+
+When you have a double loop accessing a two-dimensional array, it is usually best to have the first (row) index in the innermost loop. This is because of the storage scheme in Fortran: consecutive values of the first index are next to each other in memory, and modern processors are much faster when they access memory in order.
+
+\begin{lstlisting}[style=fortran77]
+c Good: the inner loop runs over the first index
+      do 20 j = 1, n
+         do 10 i = 1, m
+            A(i,j) = 0.0
+   10    continue
+   20 continue
+\end{lstlisting}
+
+When you have if-then-elseif statements with multiple conditions, try to place the most likely conditions first.
+
+Do not spend time optimizing code before you know where the program spends its time. And for standard tasks, such as linear algebra, use well-tested libraries (Chapter 18): they are usually both faster and more reliable than code you write yourself.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch19} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item The program \texttt{ugly.f} in that directory reads numbers until the end of the input, ignores those that are not positive, and prints the numbers that are larger than the average, and the average. List everything that is wrong with its style, and rewrite it following the guidelines of this chapter. Does the original program have any real bugs?
+
+\begin{lstlisting}[style=fortran77]
+      program ugly
+      dimension x(100)
+      n=0
+      s=0.
+    1 read(*,*,end=2) v
+      if(v)1,1,3
+    3 n=n+1
+      x(n)=v
+      s=s+v
+      goto 1
+    2 a=s/n
+      do 5 i=1,n
+    5 if(x(i).gt.a) write(*,*) x(i)
+      write(*,*) a
+      end
+\end{lstlisting}
+
+    \item Write a program that sums all the elements of a $2000 \times 2000$ double precision matrix twice: once with the first index in the inner loop, and once with the second index in the inner loop. Measure the time of each version with the Fortran 95 intrinsic subroutine \texttt{cpu\_time(t)}, which every current compiler supports. Which version is faster, and why?
+    \item Compile the program \texttt{ext.f} in that directory with \texttt{gfortran -std=f95 -Wall}. It uses \texttt{real*8}, \texttt{do while}, a comment with \texttt{!} and a name with an underscore. Which of these extensions are reported, and why not the others? Rewrite the program in standard Fortran 77.
+    \item Write a header in the style of the LAPACK routine \texttt{SGESV} (Chapter 18) for the subroutine \texttt{mscale} of Chapter 12, explaining its purpose and each of its arguments.
+\end{enumerate}

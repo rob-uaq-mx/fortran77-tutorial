@@ -1,0 +1,113 @@
+\chapter{Data and Block Data Statements}
+
+\section{The data statement}
+
+The data statement is another way to input data that are known at the time when the program is written. It is similar to the assignment statement. The syntax is:
+
+\begin{lstlisting}[style=fortran77]
+      data list-of-variables/ list-of-values/, ...
+\end{lstlisting}
+
+where the three dots means that this pattern can be repeated. Here is an example:
+
+\begin{lstlisting}[style=fortran77]
+      data m/10/, n/20/, x/2.5/, y/2.5/
+\end{lstlisting}
+
+We could also have written this
+
+\begin{lstlisting}[style=fortran77]
+      data m,n/10,20/, x,y/2*2.5/
+\end{lstlisting}
+
+We could have accomplished the same thing by the assignments
+
+\begin{lstlisting}[style=fortran77]
+      m = 10
+      n = 20
+      x = 2.5
+      y = 2.5
+\end{lstlisting}
+
+The data statement is more compact and therefore often more convenient. Notice especially the shorthand notation for assigning identical values repeatedly.
+
+There is, however, an important difference. An assignment is executed every time the program reaches it, while the data statement is not executed at all: it only specifies the \emph{initial} values that the variables have when the program starts. (Usually the compiler simply stores the values in the executable file.) The data statement can therefore appear anywhere among the declarations, and it is often used in subroutines to give a variable an initial value that must be set only once, as in the \texttt{counter} subroutine of Chapter 11 (remember to \texttt{save} such variables).
+
+The data statement can also be used to initialize arrays (vectors, matrices). This example shows how to make sure a matrix is all zeros when the program starts:
+
+\begin{lstlisting}[style=fortran77]
+      real A(10,20)
+      data A/ 200 * 0.0/
+\end{lstlisting}
+
+Some compilers will automatically initialize arrays like this but not all, so if you rely on array elements to be zero it is a good idea to follow this example. Of course you can initialize arrays to other values than zero. You may even initialize individual elements:
+
+\begin{lstlisting}[style=fortran77]
+      data A(1,1)/ 12.5/, A(2,1)/ -33.3/, A(2,2)/ 1.0/
+\end{lstlisting}
+
+Or you can list all the elements for small arrays like this:
+
+\begin{lstlisting}[style=fortran77]
+      integer v(5)
+      real B(2,2)
+      data v/10,20,30,40,50/, B/1.0,-3.7,4.3,0.0/
+\end{lstlisting}
+
+The values for two-dimensional arrays will be assigned in column-first order as usual, i.e.\ B(1,1) = 1.0, B(2,1) = $-3.7$, B(1,2) = 4.3 and B(2,2) = 0.0. If you print \texttt{B} with \texttt{write(*,*)}, gfortran shows
+
+\begin{lstlisting}[style=output]
+   1.00000000      -3.70000005       4.30000019       0.00000000
+\end{lstlisting}
+
+The ``wrong'' last digits are not an error of the data statement: $-3.7$ and 4.3 cannot be represented exactly in binary (see Chapter 5), and list-directed output shows enough digits to make the rounding visible.
+
+\section{The block data statement}
+
+In standard Fortran 77, the data statement cannot be used for variables contained in a named common block, except in a special program unit called \texttt{block data}. It is not really a subroutine, but it looks a bit similar because it is given as a separate program unit. Here is an example, together with a main program that uses the common block:
+
+\begin{lstlisting}[style=fortran77]
+      program bdata
+      implicit none
+      integer nmax
+      parameter (nmax=20)
+      real v(nmax), alpha, beta
+      common /vector/v,alpha,beta
+
+      write(*,*) 'v(1) =', v(1), '  v(20) =', v(20)
+      write(*,*) 'alpha =', alpha, '  beta =', beta
+
+      stop
+      end
+
+      block data vecini
+      implicit none
+      integer nmax
+      parameter (nmax=20)
+      real v(nmax), alpha, beta
+      common /vector/v,alpha,beta
+      data v/20*100.0/, alpha/3.14/, beta/2.71/
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ v(1) =   100.000000      v(20) =   100.000000
+ alpha =   3.14000010      beta =   2.71000004
+\end{lstlisting}
+
+Just as the data statement, a block data unit contains no executable statements; it only defines initial values, which the variables have when the program starts. The position of the block data unit in the source code is irrelevant (as long as it is not nested inside the main program or a subprogram).
+
+It is a good idea to give the block data unit a name (here \texttt{vecini}). If the block data unit is placed in a library, the linker may not include it, because no other unit refers to it, and the common block would silently remain uninitialized. Writing \texttt{external vecini} in the main program forces the linker to include it.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch14} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that reads a date (month and day) and prints the day of the year, for a year that is not a leap year. Give the number of days of each month with a data statement: \texttt{integer mdays(12)} and \texttt{data mdays /31, 28, \ldots/}.
+    \item After the declarations \texttt{real B(2,3)} and \texttt{data B /2*1.0, 3*2.0, 3.0/}, what is the value of each element of \texttt{B}? Answer first without a computer, and then check with a program that prints \texttt{B} row by row.
+    \item Write two subroutines, \texttt{count1} and \texttt{count2}, that add 1 to a local integer variable \texttt{n} and print it. In \texttt{count1}, \texttt{n} starts at 0 with \texttt{save n} and \texttt{data n /0/}; in \texttt{count2}, with the assignment \texttt{n = 0}. What does each one print if it is called three times? Why?
+    \item Put the speed of light $c = 299\,792\,458$~m/s, the Planck constant $h = 6.62607015 \cdot 10^{-34}$~J\,s and the elementary charge $e = 1.602176634 \cdot 10^{-19}$~C in a named common block of double precision variables, initialized in a named block data unit. Write a main program that prints them, and the energy $hc/\lambda$ of a photon of wavelength $\lambda = 500$~nm. Use an \texttt{external} statement for the block data unit.
+\end{enumerate}

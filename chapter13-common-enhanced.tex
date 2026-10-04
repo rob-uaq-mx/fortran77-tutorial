@@ -1,0 +1,362 @@
+\chapter{Common blocks and include files}
+
+Fortran 77 has no \emph{global} variables, i.e. variables that are shared among several program units (subroutines). The only way to pass information between subroutines we have seen so far is to use the subroutine parameter list. Sometimes this is inconvenient, e.g., when many subroutines share a large set of parameters. In such cases one can use a \emph{common block}. This is a way to specify that certain variables should be shared among certain subroutines. But in general, the use of common blocks should be minimized.
+
+\section{Common blocks example}
+
+Suppose you have two parameters alpha and beta that many of your subroutines need. The following example shows how it can be done using common blocks.
+
+\begin{lstlisting}[style=fortran77]
+      program main
+      some declarations
+      real alpha, beta
+      common /coeff/ alpha, beta
+
+      statements
+      stop
+      end
+
+      subroutine sub1 (some arguments)
+      declarations of arguments
+      real alpha, beta
+      common /coeff/ alpha, beta
+
+      statements
+      return
+      end
+
+      subroutine sub2 (some arguments)
+      declarations of arguments
+      real alpha, beta
+      common /coeff/ alpha, beta
+
+      statements
+      return
+      end
+\end{lstlisting}
+
+Here we define a common block with the name \texttt{coeff}. The contents of the common block are the two variables \texttt{alpha} and \texttt{beta}. A common block can contain as many variables as you like. They do not need to all have the same type. Every subroutine that wants to use any of the variables in the common block has to declare the whole block.
+
+Note that in this example we could easily have avoided common blocks by passing alpha and beta as parameters (arguments). A good rule is to try to avoid common blocks if possible. However, there are a few cases where there is no other solution.
+
+\section{Common blocks syntax}
+
+\begin{lstlisting}[style=fortran77]
+      common / name / list-of-variables
+\end{lstlisting}
+
+You should know that
+
+\begin{itemize}
+    \item The \texttt{common} statement should appear together with the variable declarations, before the executable statements.
+    \item Different common blocks must have different names (just like variables).
+    \item A variable \emph{cannot} belong to more than one common block.
+    \item The variables in a common block do not need to have the same names each place they occur (although it is a good idea to do so), but they must be listed in the same order and have the same type and size.
+\end{itemize}
+
+To illustrate this, look at the following continuation of our example:
+
+\begin{lstlisting}[style=fortran77]
+      subroutine sub3 (some arguments)
+      declarations of arguments
+      real a, b
+      common /coeff/ a, b
+
+      statements
+      return
+      end
+\end{lstlisting}
+
+This declaration is equivalent to the previous version that used \texttt{alpha} and \texttt{beta}. It is recommended that you always use the same variable names for the same common block to avoid confusion. Here is a dreadful example:
+
+\begin{lstlisting}[style=fortran77]
+      subroutine sub4 (some arguments)
+      declarations of arguments
+      real alpha, beta
+      common /coeff/ beta, alpha
+
+      statements
+      return
+      end
+\end{lstlisting}
+
+Now alpha is the beta from the main program and vice versa. If you see something like this, it is probably a mistake. Such bugs are very hard to find, because the compiler has no way to detect them: a common block is just a piece of memory, and each program unit decides for itself what names to give to its parts.
+
+The following complete program puts the three versions side by side:
+
+\begin{lstlisting}[style=fortran77]
+      program coeffs
+      implicit none
+      real alpha, beta
+      common /coeff/ alpha, beta
+
+      alpha = 1.0
+      beta = 2.0
+      call sub1
+      call sub3
+      call sub4
+
+      stop
+      end
+
+      subroutine sub1
+      implicit none
+      real alpha, beta
+      common /coeff/ alpha, beta
+
+      write(*,*) 'sub1: alpha =', alpha, '  beta =', beta
+      return
+      end
+
+      subroutine sub3
+      implicit none
+      real a, b
+      common /coeff/ a, b
+
+      write(*,*) 'sub3: a     =', a, '  b    =', b
+      return
+      end
+
+      subroutine sub4
+      implicit none
+      real alpha, beta
+      common /coeff/ beta, alpha
+
+      write(*,*) 'sub4: alpha =', alpha, '  beta =', beta
+      return
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ sub1: alpha =   1.00000000       beta =   2.00000000
+ sub3: a     =   1.00000000       b    =   2.00000000
+ sub4: alpha =   2.00000000       beta =   1.00000000
+\end{lstlisting}
+
+The values in \texttt{sub4} are swapped, and nothing warns us about it.
+
+\section{Arrays in common blocks}
+
+Common blocks can include arrays, too. But again, this is not recommended. The major reason is flexibility. An example shows why this is such a bad idea. Suppose we have the following declarations in the main program:
+
+\begin{lstlisting}[style=fortran77]
+      program main
+      integer nmax
+      parameter (nmax=20)
+      integer n
+      real A(nmax, nmax)
+      common /matrix/ A, n
+\end{lstlisting}
+
+This common block contains first all the elements of A, then the integer \emph{n}. Now assume you want to use the matrix A in some subroutines. Then you have to include the same declarations in all these subroutines, e.g.
+
+\begin{lstlisting}[style=fortran77]
+      subroutine sub1 (...)
+      integer nmax
+      parameter (nmax=20)
+      integer n
+      real A(nmax, nmax)
+      common /matrix/ A, n
+\end{lstlisting}
+
+Arrays with variable dimensions cannot appear in common blocks, thus the value of \emph{nmax} has to be exactly the same as in the main program. Recall that the size of a matrix has to be known at compile time, hence nmax has to be defined in a parameter statement.
+
+This example shows there is usually nothing to gain by putting arrays in common blocks. Hence the preferred method in Fortran 77 is to pass arrays as arguments to subroutines (along with the leading dimensions).
+
+\section{Blank common blocks}
+
+Fortran 77 also allows for common blocks without names, called \emph{blank common blocks}. The syntax is simply:
+
+\begin{lstlisting}[style=fortran77]
+      common list-of-variables
+\end{lstlisting}
+
+For example:
+
+\begin{lstlisting}[style=fortran77]
+      common x, y, z, count
+\end{lstlisting}
+
+Blank common blocks have some special properties:
+
+\begin{itemize}
+    \item There is only one blank common block in the whole program. (If a program unit has several \texttt{common} statements without a name, their lists are simply joined.)
+    \item The variables in the blank common block cannot be initialized by \texttt{DATA} statements, not even in a \texttt{block data} unit
+    \item Unlike named common blocks, the blank common block can have different sizes in different program units
+    \item The values in the blank common block never become undefined, so it never needs to be saved
+\end{itemize}
+
+Here's an example of using a blank common block:
+
+\begin{lstlisting}[style=fortran77]
+      program blankc
+      implicit none
+      real x, y
+      integer n
+      common x, y, n
+
+      x = 1.0
+      y = 2.0
+      n = 3
+      call sub
+
+      write(*,*) 'After sub: x =', x, ' y =', y, ' n =', n
+
+      stop
+      end
+
+      subroutine sub
+      implicit none
+      real a, b
+      integer i
+      common a, b, i
+
+      write(*,*) 'In sub: a =', a, ' b =', b, ' i =', i
+      a = 10.0
+      b = 20.0
+      i = 30
+
+      return
+      end
+\end{lstlisting}
+
+In this example, even though different variable names are used, \texttt{x} and \texttt{a}, \texttt{y} and \texttt{b}, and \texttt{n} and \texttt{i} refer to the same memory locations. The program will output:
+
+\begin{lstlisting}[style=output]
+ In sub: a =   1.00000000      b =   2.00000000      i =           3
+ After sub: x =   10.0000000      y =   20.0000000      n =          30
+\end{lstlisting}
+
+Blank common blocks are generally less preferred than named common blocks because they provide less structure and are more prone to errors.
+
+\section{The \texttt{INCLUDE} statement}
+
+When using common blocks in multiple program units, it's tedious and error-prone to repeat the same common block declarations. The \texttt{INCLUDE} statement is the usual solution to this problem. Strictly speaking, it is \emph{not} part of the Fortran 77 standard: it was a very widespread extension (defined in the U.S. military standard MIL-STD-1753 of 1978) and only became standard in Fortran 90. In practice every Fortran 77 compiler supports it.
+
+The \texttt{INCLUDE} statement allows you to insert the contents of an external file directly into your program at compile time. The syntax is:
+
+\begin{lstlisting}[style=fortran77]
+      INCLUDE 'filename'
+\end{lstlisting}
+
+The \texttt{INCLUDE} statement can appear anywhere in your program where the included text would be valid. It's particularly useful for common block declarations, parameter definitions, and other specifications that need to be consistent across multiple program units.
+
+Here's an example of how to use the \texttt{INCLUDE} statement with common blocks:
+
+First, create a file called \texttt{params.inc} containing:
+
+\begin{lstlisting}[style=fortran77]
+      real alpha, beta
+      common /coeff/ alpha, beta
+\end{lstlisting}
+
+Then, in your Fortran program units:
+
+\begin{lstlisting}[style=fortran77]
+      program incl
+      implicit none
+      real x
+      INCLUDE 'params.inc'
+
+      alpha = 1.0
+      beta = 2.0
+      call sub1(x)
+      write(*,*) 'x =', x, ' alpha =', alpha, ' beta =', beta
+
+      stop
+      end
+
+      subroutine sub1(x)
+      implicit none
+      real x
+      INCLUDE 'params.inc'
+
+      x = alpha + beta
+      alpha = 3.0
+
+      return
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ x =   3.00000000      alpha =   3.00000000      beta =   2.00000000
+\end{lstlisting}
+
+The compiler looks for \texttt{params.inc} in the directory of the source file; with gfortran you can name other directories with the option \texttt{-I}, e.g.\ \texttt{gfortran -I../include main.f}.
+
+This ensures that the common block is consistently defined across all program units. If you need to change the common block structure, you only need to modify the include file once, rather than updating each occurrence in your program.
+
+\subsection{Benefits of \texttt{INCLUDE}}
+
+The \texttt{INCLUDE} statement offers several advantages:
+
+\begin{itemize}
+    \item Reduces code duplication
+    \item Ensures consistency across program units
+    \item Makes maintenance easier - changes in one place affect all included instances
+    \item Can be used for more than just common blocks (parameter definitions, type declarations, etc.)
+\end{itemize}
+
+\subsection{Limitations of \texttt{INCLUDE}}
+
+There are some limitations to be aware of:
+
+\begin{itemize}
+    \item As explained above, \texttt{INCLUDE} is an extension to Fortran 77, although a universal one
+    \item The \texttt{INCLUDE} line must be the only statement on its line, and it cannot be continued
+    \item Inclusion is unconditional: there is no way to include a file only under certain conditions (for that, some compilers offer a C-style preprocessor with \texttt{\#include} and \texttt{\#ifdef})
+    \item How the file name is interpreted (directories, upper/lower case) depends on the compiler and the operating system
+\end{itemize}
+
+\subsection{Best practices for \texttt{INCLUDE} files}
+
+Some recommendations for using include files:
+
+\begin{itemize}
+    \item Use a standardized file extension (like \texttt{.inc}) for include files
+    \item Keep include files small and focused on a single purpose
+    \item Document the purpose and contents of each include file
+    \item Group related variables in the same include file
+    \item Consider using different include files for different common blocks
+\end{itemize}
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch13} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that reads the coefficients $a$, $b$, $c$ of the polynomial $f(x) = ax^2 + bx + c$ and prints $f(x)$ for $x = 0, 1, \ldots, 5$. The coefficients should be in a common block, declared in an include file \texttt{poly.inc}, so that the real function \texttt{f} has only one argument, \texttt{x}.
+    \item What does the following program print? Why?
+
+\begin{lstlisting}[style=fortran77]
+      program swapc
+      implicit none
+      real x, y
+      common /c/ x, y
+
+      x = 1.0
+      y = 2.0
+      call addten
+      write (*,*) 'x =', x, '  y =', y
+
+      stop
+      end
+
+      subroutine addten
+      implicit none
+      real x, y
+      common /c/ y, x
+
+      x = x + 10.0
+
+      return
+      end
+\end{lstlisting}
+
+    \item Write a subroutine \texttt{tick} (without arguments) that counts how many times it has been called, in a variable \texttt{ncalls} of a common block \texttt{/stats/}. The main program should call \texttt{tick} five times in a loop and then print \texttt{ncalls}. How must the main program give \texttt{ncalls} its initial value?
+    \item Rewrite the program \texttt{common\_array.f} that accompanies this tutorial (the example of the section ``Arrays in common blocks'') so that the declarations of \texttt{nmax}, \texttt{n}, \texttt{A} and the common block \texttt{/matrix/} are in an include file \texttt{matrix.inc}.
+\end{enumerate}

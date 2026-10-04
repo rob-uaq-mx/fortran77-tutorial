@@ -1,0 +1,132 @@
+\chapter{Arrays}
+
+Many scientific computations use vectors and matrices. The data type Fortran uses for representing such objects is the \emph{array}. A one-dimensional array corresponds to a vector, while a two-dimensional array corresponds to a matrix. To fully understand how this works in Fortran 77, you will have to know not only the syntax for usage, but also how these objects are stored in memory in Fortran 77.
+
+\section{One-dimensional arrays}
+
+The simplest array is the one-dimensional array, which is just a sequence of elements stored consecutively in memory. For example, the declaration
+
+\begin{lstlisting}[style=fortran77]
+      real a(20)
+\end{lstlisting}
+
+declares \texttt{a} as a real array of length 20. That is, \texttt{a} consists of 20 real numbers stored contiguously in memory. By convention, Fortran arrays are indexed from 1 and up. Thus the first number in the array is denoted by \texttt{a(1)} and the last by \texttt{a(20)}. However, you may define an arbitrary index range for your arrays using the following syntax:
+
+\begin{lstlisting}[style=fortran77]
+      real b(0:19), weird(-162:237)
+\end{lstlisting}
+
+Here, \texttt{b} is exactly similar to \texttt{a} from the previous example, except the index runs from 0 through 19. \texttt{weird} is an array of length 237-(-162)+1 = 400.
+
+The type of an array element can be any of the basic data types. Examples:
+
+\begin{lstlisting}[style=fortran77]
+      integer i(10)
+      logical aa(0:1)
+      double precision x(100)
+\end{lstlisting}
+
+Each element of an array can be thought of as a separate variable. You reference the i'th element of array \texttt{a} by \texttt{a(i)}. Here is a code segment that stores the 10 first square numbers in the array \texttt{sq}:
+
+\begin{lstlisting}[style=fortran77]
+      integer i, sq(10)
+
+      do 100 i = 1, 10
+         sq(i) = i**2
+  100 continue
+\end{lstlisting}
+
+A common bug in Fortran is that the program tries to access array elements that are out of bounds or undefined. This is the responsibility of the programmer: the Fortran 77 standard does not require the compiler to detect such bugs, and by default the program just reads or overwrites whatever happens to be in memory next to the array. Most compilers can check the indices at run time, at some cost in speed; with gfortran, compile with \texttt{-fcheck=bounds} (included in \texttt{-fcheck=all}) while you develop and test your program (see the chapter ``Debugging hints'' and exercise~5 below).
+
+\section{Two-dimensional arrays}
+
+Matrices are very important in linear algebra. Matrices are usually represented by two-dimensional arrays. For example, the declaration
+
+\begin{lstlisting}[style=fortran77]
+      real A(3,5)
+\end{lstlisting}
+
+defines a two-dimensional array of 3*5=15 real numbers. It is useful to think of the first index as the row index, and the second as the column index. Hence we get the graphical picture:
+
+\begin{lstlisting}[style=fortran77]
+   (1,1)  (1,2)  (1,3)  (1,4)  (1,5)
+   (2,1)  (2,2)  (2,3)  (2,4)  (2,5)
+   (3,1)  (3,2)  (3,3)  (3,4)  (3,5)
+\end{lstlisting}
+
+Two-dimensional arrays may also have indices in an arbitrary defined range. The general syntax for declarations is:
+
+\begin{lstlisting}[style=fortran77]
+     name (low_index1 : hi_index1, low_index2 : hi_index2)
+\end{lstlisting}
+
+The total size of the array is then
+
+\begin{lstlisting}[style=fortran77]
+     size = (hi_index1-low_index1+1)*(hi_index2-low_index2+1)
+\end{lstlisting}
+
+It is quite common in Fortran to declare arrays that are larger than the matrix we want to store. (This is because Fortran does not have dynamic storage allocation.) This is perfectly legal. Example:
+
+\begin{lstlisting}[style=fortran77]
+      real A(3,5)
+      integer i,j
+c
+c     We will only use the upper 3 by 3 part of this array.
+c
+      do 20 j = 1, 3
+         do 10 i = 1, 3
+            a(i,j) = real(i)/real(j)
+   10    continue
+   20 continue
+\end{lstlisting}
+
+The elements in the submatrix A(1:3,4:5) are undefined. Do not assume these elements are initialized to zero by the compiler (some compilers will do this, but not all).
+
+\section{Storage format for 2-dimensional arrays}
+
+Fortran stores higher dimensional arrays as a contiguous sequence of elements. It is important to know that 2-dimensional arrays are stored \emph{by column}. So in the above example, array element (1,2) will follow element (3,1). Then follows the rest of the second column, thereafter the third column, and so on.
+
+Consider again the example where we only use the upper 3 by 3 submatrix of the 3 by 5 array \texttt{A(3,5)}. The 9 interesting elements will then be stored in the first nine memory locations, while the last six are not used. This works out neatly because the \emph{leading dimension} is the same for both the array and the matrix we store in the array. However, frequently the leading dimension of the array will be larger than the first dimension of the matrix. Then the matrix will \emph{not} be stored contiguously in memory, even if the array is contiguous. For example, suppose the declaration was \texttt{A(5,3)} instead. Then there would be two "unused" memory cells between the end of one column and the beginning of the next column (again we are assuming the matrix is 3 by 3).
+
+This may seem complicated, but actually it is quite simple when you get used to it. If you are in doubt, it can be useful to look at how the \emph{address} of an array element is computed. Each array will have some memory address assigned to the beginning of the array, that is element (1,1). The address of element (i,j) is then given by
+
+\begin{lstlisting}[style=fortran77]
+      addr[A(i,j)] = addr[A(1,1)] + (j-1)*lda + (i-1)
+\end{lstlisting}
+
+where \texttt{lda} is the leading (i.e. row) dimension of \texttt{A}. Note that \texttt{lda} is in general different from the actual matrix dimension. Many Fortran errors are caused by this, so it is very important you understand the distinction!
+
+\section{Multi-dimensional arrays}
+
+Fortran 77 allows arrays of up to seven dimensions. The syntax and storage format are analogous to the two-dimensional case, so we will not spend time on this.
+
+\section{The \texttt{dimension} statement}
+
+There is an alternate way to declare arrays in Fortran 77. The statements
+
+\begin{lstlisting}[style=fortran77]
+      real A, x
+      dimension x(50)
+      dimension A(10,20)
+\end{lstlisting}
+
+are equivalent to
+
+\begin{lstlisting}[style=fortran77]
+      real A(10,20), x(50)
+\end{lstlisting}
+
+This \texttt{dimension} statement is considered old-fashioned style today.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch10} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that reads an integer $n \le 100$ and then $n$ real numbers into an array, and prints their mean and all the numbers that are larger than the mean. Why do you need an array for this, while the mean alone could be computed without one?
+    \item Write a program that fills a $3 \times 4$ integer matrix with $A(i,j) = 10i + j$, stores its transpose in a $4 \times 3$ matrix $B$, and prints both matrices row by row.
+    \item An array is declared as \texttt{real A(5,3)}, and only the $3 \times 3$ matrix in its upper part is used. Counting the memory positions of the array from 1, in which position is \texttt{A(2,3)} stored? Which positions are not used? (Answer without a computer.)
+    \item Write a program that reads an integer $n \le 100$ and then $n$ real numbers into an array, and prints the largest number and its position in the array.
+    \item Compile the program \texttt{checks/bounds.f} that accompanies this tutorial, first without options and then with \texttt{-fcheck=bounds}, and run it both times. What is the error, and why does the program seem to work in the first case? Fix it.
+\end{enumerate}

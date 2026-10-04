@@ -1,0 +1,462 @@
+\chapter{Expressions and assignment}
+
+\section{Constants}
+
+The simplest form of an expression is a \emph{constant}. There are 6 types of constants, corresponding to the 6 data types. Here are some integer constants:
+
+\begin{lstlisting}[style=fortran77]
+      1
+      0
+      -100
+      32767
+      +15
+\end{lstlisting}
+
+Then we have real constants:
+
+\begin{lstlisting}[style=fortran77]
+      1.0
+      -0.25
+      2.0E6
+      3.333E-1
+\end{lstlisting}
+
+The E-notation means that you should multiply the constant by 10 raised to the power following the "E". Hence, 2.0E6 is two million, while 3.333E-1 is approximately one third.
+
+For constants that are larger than the largest real allowed, or that requires high precision, double precision should be used. The notation is the same as for real constants except the "E" is replaced by a "D". Examples:
+
+\begin{lstlisting}[style=fortran77]
+      2.0D-1
+      1D99
+\end{lstlisting}
+
+Here 2.0D-1 is a double precision one-fifth, while 1D99 is a one followed by 99 zeros.
+
+The next type is complex constants. This is designated by a pair of constants (integer or real), separated by a comma and enclosed in parentheses. Examples are:
+
+\begin{lstlisting}[style=fortran77]
+      (2, -3)
+      (1., 9.9E-1)
+\end{lstlisting}
+
+The first number denotes the real part and the second the imaginary part.
+
+The fifth type is logical constants. These can only have one of two values:
+
+\begin{lstlisting}[style=fortran77]
+      .TRUE.
+      .FALSE.
+\end{lstlisting}
+
+Note that the dots enclosing the letters are required.
+
+The last type is character constants. These are most often used as an \emph{array} of characters, called a \emph{string}. These consist of an arbitrary sequence of characters enclosed in apostrophes (single quotes):
+
+\begin{lstlisting}[style=fortran77]
+      'ABC'
+      'Anything goes!'
+      'It is a nice day'
+\end{lstlisting}
+
+Strings and character constants are case sensitive. A problem arises if you want to have an apostrophe in the string itself. In this case, you should double the apostrophe:
+
+\begin{lstlisting}[style=fortran77]
+      'It''s a nice day'
+\end{lstlisting}
+
+\section{Expressions}
+
+The simplest non-constant expressions are of the form
+
+\begin{lstlisting}[style=fortran77]
+      operand operator operand
+\end{lstlisting}
+
+and an example is
+
+\begin{lstlisting}[style=fortran77]
+      x + y
+\end{lstlisting}
+
+The result of an expression is itself an operand, hence we can nest expressions together like
+
+\begin{lstlisting}[style=fortran77]
+      x + 2 * y 
+\end{lstlisting}
+
+This raises the question of precedence: Does the last expression mean \texttt{x + (2*y)} or \texttt{(x+2)*y}? The precedence of arithmetic operators in Fortran 77 are (from highest to lowest):
+
+\begin{lstlisting}[style=fortran77]
+      **   {exponentiation}
+      *,/  {multiplication, division}
+      +,-  {addition, subtraction}
+\end{lstlisting}
+
+Operators of the same precedence are evaluated left-to-right, except the exponentiation operator **, which is evaluated right-to-left: \texttt{2**3**2} means \texttt{2**(3**2)} = 512. If you want to change the default evaluation order, you can use parentheses.
+
+The above operators are all binary operators. There is also the unary operator \texttt{-} for negation. It has the \emph{same} precedence as binary \texttt{+} and \texttt{-}, which means it is applied \emph{after} exponentiation, multiplication and division. An expression like \texttt{-x+y} means what you would expect, but beware of \texttt{-2**2}: it is \texttt{-(2**2)} = $-4$, not 4. Write \texttt{(-2)**2} if you mean the square of $-2$. Also note that two operators may not follow each other directly: \texttt{x*-y} is not standard Fortran 77, write \texttt{x*(-y)} instead.
+
+Extreme caution must be taken when using the division operator, which has a quite different meaning for integers and reals. If the operands are both integers, an integer division is performed, otherwise a real arithmetic division is performed. For example, 3/2 equals 1, while 3./2. equals 1.5 (note the decimal points).
+
+\section{Assignment}
+
+The assignment has the form
+
+\begin{lstlisting}[style=fortran77]
+      variable_name = expression
+\end{lstlisting}
+
+The interpretation is as follows: Evaluate the right hand side and assign the resulting value to the variable on the left. The expression on the right may contain other variables, but these never change value! For example,
+
+\begin{lstlisting}[style=fortran77]
+      area = pi * r**2
+\end{lstlisting}
+
+does not change the value of \texttt{pi} or \texttt{r}, only \texttt{area}.
+
+\section{Type conversion}
+
+When different data types occur in the same expression, \emph{type conversion} has to take place, either explicitly or implicitly. Fortran will do some type conversion implicitly. For example,
+
+\begin{lstlisting}[style=fortran77]
+      real x
+      x = x + 1
+\end{lstlisting}
+
+will convert the integer one to the real number one, and has the desired effect of incrementing x by one. However, in more complicated expressions, it is good programming practice to force the necessary type conversions explicitly. For numbers, the following functions are available:
+
+\begin{lstlisting}[style=fortran77]
+      int
+      real
+      dble
+      ichar
+      char
+\end{lstlisting}
+
+The first three have the obvious meaning. \texttt{ichar} takes a character and converts it to an integer, while \texttt{char} does exactly the opposite.
+
+Example: How to multiply two real variables \texttt{x} and \texttt{y} using double precision and store the result in the double precision variable \texttt{w}:
+
+\begin{lstlisting}[style=fortran77]
+      w = dble(x)*dble(y)
+\end{lstlisting}
+
+Note that this is different from
+
+\begin{lstlisting}[style=fortran77]
+      w = dble(x*y)
+\end{lstlisting}
+
+In the first case both numbers are converted to double precision and the product is computed in double precision. In the second case the product is computed in single precision (and rounded to about 7 digits) and only then converted; the digits lost in the multiplication do not come back. The following program shows the difference:
+
+\begin{lstlisting}[style=fortran77]
+      program dblmul
+      implicit none
+      real x, y
+      double precision w1, w2
+
+      x = 4097.0
+      y = 4097.0
+      w1 = dble(x)*dble(y)
+      w2 = dble(x*y)
+      write (*,*) 'dble(x)*dble(y) =', w1
+      write (*,*) 'dble(x*y)       =', w2
+
+      x = 1.1
+      write (*,*) 'dble(1.1)       =', dble(x)
+      write (*,*) '1.1D0           =', 1.1D0
+
+      stop
+      end
+\end{lstlisting}
+
+Output with gfortran:
+
+\begin{lstlisting}[style=output]
+ dble(x)*dble(y) =   16785409.000000000
+ dble(x*y)       =   16785408.000000000
+ dble(1.1)       =   1.1000000238418579
+ 1.1D0           =   1.1000000000000001
+\end{lstlisting}
+
+The exact product $4097^2 = 16\,785\,409$ needs 25 binary digits, but a \texttt{real} only has 24, so \texttt{x*y} is rounded to 16\,785\,408. The last two lines show an even more common trap: converting a \texttt{real} to double precision does not make it more accurate. The real number 1.1 was already rounded when it was stored, and \texttt{dble} keeps that error. If you need a double precision constant, write it with a \texttt{D} exponent (\texttt{1.1D0}) from the start.
+
+(If you use an old 32-bit compiler, you may see the same value on the first two lines: such compilers often compute intermediate results with extra precision. With gfortran you can avoid this with the options \texttt{-msse2 -mfpmath=sse}.)
+
+% Chapter 6.5: Character Strings and String Manipulation
+
+\section{Character strings and string manipulation}
+
+In Fortran 77, character strings are a distinct data type. Character variables can store a single character or a string of characters. While we briefly mentioned character constants earlier, here we will explore character variables and string manipulation in more detail.
+
+\subsection{Character declaration}
+
+Character variables must be explicitly declared with a length specification:
+
+\begin{lstlisting}[style=fortran77]
+      character*n variable_name
+\end{lstlisting}
+
+where \emph{n} is the number of characters to be stored. For example:
+
+\begin{lstlisting}[style=fortran77]
+      character*10 name
+      character*80 line
+      character*1 answer
+\end{lstlisting}
+
+The character declaration may apply to a list of variables, all having the same length:
+
+\begin{lstlisting}[style=fortran77]
+      character*20 fname, lname
+\end{lstlisting}
+
+Alternatively, individual length can be specified for each variable:
+
+\begin{lstlisting}[style=fortran77]
+      character fname*20, lname*30, initial*1
+\end{lstlisting}
+
+\subsection{Character arrays}
+
+Arrays of character strings can be declared in a similar manner to numeric arrays:
+
+\begin{lstlisting}[style=fortran77]
+      character*80 text(100)
+\end{lstlisting}
+
+This declares an array of 100 strings, each of length 80 characters.
+
+\subsection{Character assignment}
+
+Character assignment works like any other assignment in Fortran:
+
+\begin{lstlisting}[style=fortran77]
+      character*10 name
+      name = 'John Smith'
+\end{lstlisting}
+
+If the length of the string on the right is shorter than the declared length of the character variable, the value is padded with blanks on the right. If the length of the string on the right is longer than the declared length, the string is truncated on the right.
+
+\begin{lstlisting}[style=fortran77]
+      character*10 name1, name2
+      name1 = 'John'        ! 'John      ' (padded with 6 blanks)
+      name2 = 'John Smith'  ! 'John Smith'
+      name1 = 'Alexander Graham Bell'  ! 'Alexander ' (truncated)
+\end{lstlisting}
+
+\subsection{String operations}
+
+Fortran 77 offers a few basic operations for string manipulation:
+
+\subsubsection{Concatenation}
+
+The concatenation operator is the double slash (//):
+
+\begin{lstlisting}[style=fortran77]
+      character*5 first
+      character*7 last
+      character*13 fullname
+      
+      first = 'John'
+      last = 'Smith'
+      fullname = first // ' ' // last   ! Result: 'John  Smith  '
+\end{lstlisting}
+
+Notice the \emph{two} blanks between the names: \texttt{first} has length 5, so it contains \texttt{'John '} with a trailing blank, and all 5 characters take part in the concatenation. This is one of the most common surprises with Fortran strings. To get \texttt{'John Smith'} you must use only the significant part of \texttt{first}, e.g.\ \texttt{first(1:4) // ' ' // last}. In Section~\ref{sec:strup} we show how to find the length of the significant part of a string.
+
+\subsubsection{String comparison}
+
+Character strings can be compared using the standard relational operators: .LT., .LE., .EQ., .NE., .GT., and .GE. When two strings of different length are compared, the shorter one is padded with blanks.
+
+\begin{lstlisting}[style=fortran77]
+      character*5 word1, word2
+      logical result
+
+      word1 = 'alpha'
+      word2 = 'beta'
+      result = word1 .LT. word2    ! result = .TRUE.
+\end{lstlisting}
+
+The order used by these operators is the \emph{collating sequence} of the computer. Fortran 77 only guarantees that letters and digits are in their natural order; whether, for example, \texttt{'a'} comes before or after \texttt{'B'} or \texttt{'1'} depends on the machine. Nowadays practically all computers use ASCII, but if you need a portable comparison in ASCII order, use the intrinsic functions \texttt{LLT}, \texttt{LLE}, \texttt{LGT} and \texttt{LGE} (``lexically less than'', etc.):
+
+\begin{lstlisting}[style=fortran77]
+      result = LLT(word1, word2)   ! same as word1 .LT. word2 in ASCII
+\end{lstlisting}
+
+\subsection{String intrinsic functions}
+
+Fortran 77 provides several intrinsic functions for string manipulation:
+
+\subsubsection{LEN}
+
+Returns the declared length of a character variable:
+
+\begin{lstlisting}[style=fortran77]
+      character*10 name
+      integer length
+      
+      name = 'John'
+      length = LEN(name)   ! length = 10, not 4
+\end{lstlisting}
+
+\subsubsection{INDEX}
+
+Searches for a substring within a string and returns its position:
+
+\begin{lstlisting}[style=fortran77]
+      character*20 text
+      integer pos
+      
+      text = 'This is a test'
+      pos = INDEX(text, 'is')    ! pos = 3 (first occurrence)
+      pos = INDEX(text, 'xyz')   ! pos = 0 (not found)
+\end{lstlisting}
+
+Note that the first occurrence of \texttt{'is'} is inside the word \texttt{'This'}. (Fortran 90 added an optional third argument, \texttt{INDEX(text, 'is', .TRUE.)}, which searches from the end and would return 6; it is not available in Fortran 77.)
+
+\subsubsection{CHAR and ICHAR}
+
+These functions convert between characters and their integer codes. On practically all computers the codes are the ASCII values, but the standard does not guarantee it (\texttt{IACHAR} and \texttt{ACHAR}, which always use ASCII, only appeared in Fortran 90):
+
+\begin{lstlisting}[style=fortran77]
+      character ch
+      integer code
+      
+      ch = CHAR(65)      ! ch = 'A'
+      code = ICHAR('A')  ! code = 65
+\end{lstlisting}
+
+\subsection{Substring operations}
+
+In Fortran 77, you can extract a portion of a string using substring notation:
+
+\begin{lstlisting}[style=fortran77]
+      character*10 name
+      character*5 first
+      
+      name = 'John Smith'
+      first = name(1:4)     ! first = 'John'
+\end{lstlisting}
+
+The general form of substring notation is:
+
+\begin{lstlisting}[style=fortran77]
+      string(start:end)
+\end{lstlisting}
+
+Both \emph{start} and \emph{end} must be integers with $1 \leq$ \emph{start} $\leq$ \emph{end} $\leq$ the length of the string. If \emph{start} is omitted, 1 is assumed. If \emph{end} is omitted, the length of the string is assumed. The length of the substring is \emph{end} $-$ \emph{start} $+ 1$.
+
+\begin{lstlisting}[style=fortran77]
+      character*20 text
+      
+      text = 'abcdefghijklmnopqrst'
+      write(*,*) text(:5)     ! 'abcde'
+      write(*,*) text(6:10)   ! 'fghij'
+      write(*,*) text(16:)    ! 'pqrst'
+\end{lstlisting}
+
+Substring can also appear on the left side of an assignment:
+
+\begin{lstlisting}[style=fortran77]
+      character*15 name
+      
+      name = 'John Doe'
+      name(6:10) = 'Smith'   ! name becomes 'John Smith'
+\end{lstlisting}
+
+Be careful to give the substring the right length: \texttt{name(6:8)} has only 3 characters, so \texttt{name(6:8) = 'Smith'} would store just \texttt{'Smi'}, giving \texttt{'John Smi'}. As in any character assignment, the value is truncated (or padded with blanks) to fit.
+
+\subsection{Example: String processing}
+\label{sec:strup}
+
+Here is a simple example that converts a string to uppercase:
+
+\begin{lstlisting}[style=fortran77]
+      program strup
+      implicit none
+      character*80 text
+      character*26 lower, upper
+      integer i, k, n
+      parameter (lower = 'abcdefghijklmnopqrstuvwxyz',
+     +           upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+
+c Read input text
+      write(*,*) 'Enter a string:'
+      read(*,'(A)') text
+
+c Find the actual length n of the text (ignoring trailing blanks)
+      n = 0
+      do 10 i = 80, 1, -1
+         if (text(i:i) .NE. ' ') then
+            n = i
+            goto 20
+         endif
+   10 continue
+   20 continue
+
+c Convert lowercase to uppercase: look up each character in
+c the string lower; if found, take the letter at the same
+c position in upper.
+      do 30 i = 1, n
+         k = INDEX(lower, text(i:i))
+         if (k .GT. 0) text(i:i) = upper(k:k)
+   30 continue
+
+c Print the result
+      write(*,*) 'Uppercase version:'
+      if (n .GT. 0) write(*,'(A)') text(1:n)
+
+      stop
+      end
+\end{lstlisting}
+
+Running the program:
+
+\begin{lstlisting}[style=output]
+ Enter a string:
+Hello, World!
+ Uppercase version:
+HELLO, WORLD!
+\end{lstlisting}
+
+This program reads a line of text, determines its actual length (ignoring trailing blanks), and converts any lowercase letters to uppercase. Some remarks:
+
+\begin{itemize}
+    \item A common way to convert a letter is \texttt{CHAR(ICHAR(c) - 32)}, which works because in ASCII each lowercase letter comes exactly 32 positions after its uppercase version. The method used here, looking the letter up with \texttt{INDEX}, does not depend on the character codes at all, so it works on any computer.
+    \item The variable holding the length is called \texttt{n}, not \texttt{len}. Using \texttt{len} would be legal (Fortran has no reserved words), but it would hide the intrinsic function \texttt{LEN} in this program.
+    \item If the input line is empty, \texttt{n} stays 0. A substring \texttt{text(1:0)} has length zero, which Fortran 77 does not allow, so we only print when \texttt{n} is positive.
+\end{itemize}
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch06} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that reads a number of seconds and prints it as hours, minutes and seconds (for example, 3725 seconds = 1 h 2 min 5 s), using only integer arithmetic.
+    \item Write a program that reads a line with a first name and a last name separated by one blank, for example \texttt{Grace Hopper}, and prints \texttt{Hopper, Grace}. Use \texttt{INDEX} to find the blank, and substrings to extract the names.
+    \item Predict the value of each of these expressions, and then check your predictions with a program: \texttt{2**3**2}, \texttt{-3**2}, \texttt{7/2*2}, \texttt{7/2.0*2}, \texttt{2+3*4**2/8} and \texttt{(2+3)*4**2/8}.
+    \item The volume of a sphere is $\frac{4}{3}\pi r^3$. Write a program that reads $r$ and computes the volume twice, once with the expression \texttt{4/3*pi*r**3} and once with \texttt{4.0/3.0*pi*r**3}. Why are the results different? Which one is correct?
+    \item Write a program that computes $1/3$ as a \texttt{real}, converts it to double precision with \texttt{dble}, and compares the result with $1/3$ computed directly in double precision (\texttt{1.0D0/3.0D0}). Explain the difference.
+    \item Write a program that reads a date in the form \texttt{YYYY-MM-DD} (for example \texttt{2026-10-04}) into a \texttt{character*10} variable, and prints it in the form \texttt{DD/MM/YYYY}, using substrings and concatenation. Read the line with \texttt{read (*,'(A)')}.
+    \item Predict what this program prints, and then check:
+\begin{lstlisting}[style=fortran77]
+      program concat
+      implicit none
+      character*6 a, b
+      character*12 c, d
+
+      a = 'Hi'
+      b = 'there'
+      c = a // b
+      d = a(1:2) // ' ' // b(1:5)
+
+      write (*,*) '[', c, ']'
+      write (*,*) '[', d, ']'
+      write (*,*) 'len(c) =', len(c), '   len(a // b) =', len(a // b)
+
+      stop
+      end
+\end{lstlisting}
+    \item Write a program that reads an e-mail address, such as \texttt{grace.hopper@navy.mil}, and prints separately the user name (the part before the \texttt{@}) and the domain (the part after it). Use \texttt{INDEX} to find the \texttt{@} and the first blank after the address.
+\end{enumerate}

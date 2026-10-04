@@ -1,0 +1,413 @@
+\chapter{Loops}
+
+For repeated execution of similar things, \emph{loops} are used. If you are familiar with other programming languages you have probably heard about \emph{for}-loops, \emph{while}-loops, and \emph{until}-loops. Fortran 77 has only one loop construct, called the \texttt{do}-loop. The \texttt{do}-loop corresponds to what is known as a \emph{for}-loop in other languages. Other loop constructs have to be built using the \texttt{if} and \texttt{goto} statements.
+
+\section{do-loops}
+
+The \texttt{do}-loop is used for simple counting. Here is a simple example that prints the cumulative sums of the integers from 1 through n (assume n has been assigned a value elsewhere):
+
+\begin{lstlisting}[style=fortran77]
+      integer i, n, sum
+ 
+      sum = 0
+      do 10 i = 1, n
+         sum = sum + i
+         write(*,*) 'i =', i
+         write(*,*) 'sum =', sum
+  10  continue
+\end{lstlisting}
+
+The number 10 is a statement \emph{label}. Typically, there will be many loops and other statements in a single program that require a statement label. The programmer is responsible for assigning a unique number to each label in each program (or subprogram). Recall that column positions 1-5 are reserved for statement labels. The numerical value of statement labels have no significance, so any integers can be used, in any order. Typically, most programmers use consecutive multiples of 10.
+
+The variable defined in the \texttt{do}-statement is incremented by 1 by default. However, you can define the \emph{step} to be any number but zero. This program segment prints the even numbers between 1 and 10 in decreasing order:
+
+\begin{lstlisting}[style=fortran77]
+      integer i
+ 
+      do 20 i = 10, 1, -2
+         write(*,*) 'i =', i
+  20  continue
+\end{lstlisting}
+
+The general form of the \texttt{do} loop is as follows:
+
+\begin{lstlisting}[style=fortran77]
+      do label  var =  expr1, expr2, expr3
+         statements
+label continue
+\end{lstlisting}
+
+\emph{var} is the loop variable (often called the \emph{loop index}) which must be integer. \emph{expr1} specifies the initial value of \emph{var}, \emph{expr2} is the terminating bound, and \emph{expr3} is the increment (step).
+
+Note: The \texttt{do}-loop variable must never be changed by other statements within the loop! The standard forbids it, and the result would be very confusing.
+
+Fortran 77 also allows the loop index to be of type \texttt{real}, but due to round off errors it may not take on exactly the expected sequence of values. Real loop indices were removed from the language in Fortran 95: always use integers.
+
+\subsection{How many times is the loop executed?}
+
+Before the first pass through the loop, Fortran computes the \emph{iteration count}
+
+\[
+    \max\left(0,\ \left\lfloor \frac{expr2 - expr1 + expr3}{expr3} \right\rfloor\right)
+\]
+
+and then executes the body exactly that many times. Two consequences are worth remembering:
+
+\begin{itemize}
+    \item If the count is zero, the body is not executed at all. For example, \texttt{do 10 i = 1, n} does nothing when \texttt{n} is 0. (In the older Fortran 66 standard, many compilers executed such a loop once. If you maintain very old code, keep this in mind.)
+    \item After the loop is finished, the loop variable has the value it would have had in the next iteration, i.e.\ one step beyond the last value used.
+\end{itemize}
+
+The following program illustrates both points:
+
+\begin{lstlisting}[style=fortran77]
+      program trips
+      implicit none
+      integer i, n
+
+      n = 0
+      do 10 i = 1, n
+         write (*,*) 'This line is never printed'
+   10 continue
+      write (*,*) 'After the loop, i =', i
+
+      do 20 i = 10, 1, -3
+         write (*,*) 'i =', i
+   20 continue
+      write (*,*) 'After the loop, i =', i
+
+      stop
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ After the loop, i =           1
+ i =          10
+ i =           7
+ i =           4
+ i =           1
+ After the loop, i =          -2
+\end{lstlisting}
+
+In the second loop the count is $\lfloor (1 - 10 - 3)/(-3) \rfloor = 4$.
+
+Many Fortran 77 compilers allow \texttt{do}-loops to be closed by the \texttt{enddo} statement. The advantage of this is that the statement label can then be omitted since it is assumed that an \texttt{enddo} closes the nearest previous \texttt{do} statement. The \texttt{enddo} construct is widely used, but it is not a part of ANSI Fortran 77.
+
+This also explains why, unlike in some programming languages, changing the variables used in the start, end, and step expressions inside the loop has no effect on the number of iterations: they are evaluated only once, before the first pass through the body of the loop. This means that the following do-loop will multiply a non-negative j by two (the hard way), rather than running forever as the equivalent loop might in another language.
+
+\begin{lstlisting}[style=fortran77]
+      integer i,j
+ 
+      read (*,*) j
+      do 20 i = 1, j
+         j = j + 1
+  20  continue
+      write (*,*) j
+\end{lstlisting}
+
+\section{while-loops}
+
+The most intuitive way to write a \texttt{while}-loop is
+
+\begin{lstlisting}[style=fortran77]
+      do while (logical expr)
+         statements
+      enddo
+\end{lstlisting}
+
+The program will alternate testing the condition and executing the statements in the body as long as the condition in the \texttt{while} statement is true. Even though this syntax is accepted by most compilers (and is standard since Fortran 90), it is not ANSI Fortran 77. The correct way is to use \texttt{if} and \texttt{goto}:
+
+\begin{lstlisting}[style=fortran77]
+label if (logical expr) then
+         statements
+         goto label
+      endif 
+\end{lstlisting}
+
+Here is an example that calculates and prints all the powers of two that are less than or equal to 100:
+
+\begin{lstlisting}[style=fortran77]
+      integer n
+
+      n = 1
+   10 if (n .le. 100) then
+         write (*,*) n
+         n = 2*n
+         goto 10
+      endif
+\end{lstlisting}
+
+Remember the column rules: the label \texttt{10} goes in columns 1--5, and the statement itself must start in column 7 or later. A statement that starts in column 6 would be taken as a continuation line, and the compiler would complain.
+
+\section{until-loops}
+
+If the termination criterion is at the end instead of the beginning, it is often called an until-loop. The pseudocode looks like this:
+
+\begin{lstlisting}[style=fortran77]
+      do
+         statements
+      until (logical expr)
+\end{lstlisting}
+
+Again, this should be implemented in Fortran 77 by using \texttt{if} and \texttt{goto}:
+
+\begin{lstlisting}[style=fortran77]
+label continue
+         statements
+      if (logical expr) goto label
+\end{lstlisting}
+
+Note that the logical expression in the latter version should be the negation of the expression given in the pseudocode!
+
+\section{Advanced control statements}
+
+In addition to the basic \texttt{if} statements and \texttt{do} loops that we have already covered, Fortran 77 provides several other control structures. These include arithmetic \texttt{if}, computed \texttt{goto}, assigned \texttt{goto}, and other variations. While these constructs are less commonly used in modern programming style (and are often discouraged), they are part of the Fortran 77 standard and you may encounter them in older code.
+
+\subsection{Arithmetic \texttt{if} statement}
+
+The arithmetic \texttt{if} statement is a three-way branch based on whether an arithmetic expression is negative, zero, or positive:
+
+\begin{lstlisting}[style=fortran77]
+      if (expr) label1, label2, label3
+\end{lstlisting}
+
+Control will transfer to \emph{label1} if \emph{expr} $<$ 0, to \emph{label2} if \emph{expr} $=$ 0, and to \emph{label3} if \emph{expr} $>$ 0.
+
+For example:
+
+\begin{lstlisting}[style=fortran77]
+      if (x - y) 10, 20, 30
+  10  write(*,*) 'x is less than y'
+      goto 40
+  20  write(*,*) 'x equals y'
+      goto 40
+  30  write(*,*) 'x is greater than y'
+  40  continue
+\end{lstlisting}
+
+This is an older form of \texttt{if} statement and is generally considered less readable than the logical \texttt{if} or block \texttt{if} statements. It should be avoided in new code. It was declared obsolescent in Fortran 90 and deleted from the language in Fortran 2018; gfortran still accepts it, with a warning.
+
+\subsection{Unconditional \texttt{goto}}
+
+We have already seen the unconditional \texttt{goto} in earlier examples. It transfers control to the statement with the specified label:
+
+\begin{lstlisting}[style=fortran77]
+      goto label
+\end{lstlisting}
+
+For example:
+
+\begin{lstlisting}[style=fortran77]
+      goto 100
+      ...
+  100 continue
+\end{lstlisting}
+
+While \texttt{goto} statements are sometimes necessary in Fortran 77 (especially for implementing certain loop structures), they should be used sparingly as they can make programs difficult to understand and maintain.
+
+\subsection{Computed \texttt{goto}}
+
+The computed \texttt{goto} statement provides a way to branch to one of several labels based on the value of an integer expression:
+
+\begin{lstlisting}[style=fortran77]
+      goto (label1, label2, ..., labelN) expr
+\end{lstlisting}
+
+If \emph{expr} $=$ 1, control transfers to \emph{label1}; if \emph{expr} $=$ 2, control transfers to \emph{label2}; and so on. If \emph{expr} is less than 1 or greater than \emph{N}, the computed \texttt{goto} will not transfer control, and execution will continue with the next statement.
+
+Here's an example. To see what happens when \texttt{day} is out of range, the program tries all values from 0 to 8:
+
+\begin{lstlisting}[style=fortran77]
+      program weekdy
+      implicit none
+      integer day
+
+      do 90 day = 0, 8
+         write(*,*) 'day =', day
+         goto (10, 20, 30, 40, 50, 60, 70) day
+         write(*,*) '   (out of range: no jump)'
+         goto 80
+   10    write(*,*) '   Sunday'
+         goto 80
+   20    write(*,*) '   Monday'
+         goto 80
+   30    write(*,*) '   Tuesday'
+         goto 80
+   40    write(*,*) '   Wednesday'
+         goto 80
+   50    write(*,*) '   Thursday'
+         goto 80
+   60    write(*,*) '   Friday'
+         goto 80
+   70    write(*,*) '   Saturday'
+   80    continue
+   90 continue
+
+      stop
+      end
+\end{lstlisting}
+
+Output (shortened):
+
+\begin{lstlisting}[style=output]
+ day =           0
+    (out of range: no jump)
+ day =           1
+    Sunday
+ day =           2
+    Monday
+   ...
+ day =           7
+    Saturday
+ day =           8
+    (out of range: no jump)
+\end{lstlisting}
+
+Notice that every branch must end with \texttt{goto 80}; otherwise execution would simply ``fall through'' into the next branch.
+
+In modern code, this would typically be implemented using a block \texttt{if} statement or, in Fortran 90 and later, a \texttt{select case} statement.
+
+\subsection{Assigned \texttt{goto}}
+
+The assigned \texttt{goto} statement is a more complex variation where a label is first assigned to an integer variable using the \texttt{assign} statement, and then control is transferred to that label:
+
+\begin{lstlisting}[style=fortran77]
+      assign label to int_var
+      ...
+      goto int_var [,[,] (label1, label2, ..., labelN)]
+\end{lstlisting}
+
+The optional list of labels in parentheses specifies the valid target labels, but this is not required in standard Fortran 77.
+
+Here's an example:
+
+\begin{lstlisting}[style=fortran77]
+      integer jump
+      ...
+      assign 100 to jump
+      ...
+      goto jump
+      ...
+  100 continue
+\end{lstlisting}
+
+Or with the optional label list:
+
+\begin{lstlisting}[style=fortran77]
+      integer route
+      ...
+      assign 200 to route
+      ...
+      goto route, (100, 200, 300)
+      ...
+  100 continue
+      ...
+  200 continue
+      ...
+  300 continue
+\end{lstlisting}
+
+This construct is rarely used and should be avoided in new code. The \texttt{assign} statement and the assigned \texttt{goto} were deleted from the language in Fortran 95; gfortran still accepts them, but with a warning.
+
+\subsection{Alternate \texttt{return}}
+
+Fortran 77 allows a subroutine to return to different points in the calling program using the alternate \texttt{return} feature. This is specified in the subroutine's parameter list and in the \texttt{return} statement:
+
+\begin{lstlisting}[style=fortran77]
+c In the subroutine: each * marks an alternate return point
+      subroutine sub(arg1, arg2, *, *)
+      ...
+      return expr
+      ...
+      end
+
+c In the caller: the actual arguments are *label
+      call sub(x, y, *label1, *label2)
+\end{lstlisting}
+
+If \emph{expr} $=$ 1, control returns to \emph{label1} in the calling program; if \emph{expr} $=$ 2, control returns to \emph{label2}; and so on. A plain \texttt{return} without an expression returns to the statement following the subroutine call.
+
+Here's an example:
+
+\begin{lstlisting}[style=fortran77]
+      program altret
+      implicit none
+      integer k
+
+      do 400 k = 1, 3
+         call check(k, *100, *200)
+         write(*,*) k, ': normal return'
+         goto 300
+  100    write(*,*) k, ': error'
+         goto 300
+  200    write(*,*) k, ': end of data'
+  300    continue
+  400 continue
+
+      stop
+      end
+
+      subroutine check(code, *, *)
+      implicit none
+      integer code
+
+      if (code .eq. 2) return 1
+      if (code .eq. 3) return 2
+      return
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+           1 : normal return
+           2 : error
+           3 : end of data
+\end{lstlisting}
+
+This feature should also be avoided in modern code, as it can make program flow difficult to follow.
+
+\subsection{Non-block \texttt{do}}
+
+Although we've covered the standard \texttt{do} loop construction in a previous lesson, it's worth noting that Fortran 77 allows the target statement of a \texttt{do} loop to be any executable statement, not just \texttt{continue}:
+
+\begin{lstlisting}[style=fortran77]
+      do 50 i = 1, 10
+      do 50 j = 1, 10
+         a(i,j) = 0.0
+  50  b(i,j) = 1.0
+\end{lstlisting}
+
+In this example, both loops share the same terminal statement (\texttt{b(i,j) = 1.0}), which belongs to the inner loop. This style is confusing and error-prone, and should be avoided: both shared termination and terminal statements other than \texttt{continue} (or \texttt{enddo}) were declared obsolescent in Fortran 90 and deleted in Fortran 2018. gfortran still accepts them, with a warning.
+
+\subsection{Best practices}
+
+While the advanced control statements described here are part of standard Fortran 77, they are generally considered to be less readable and maintainable than the more structured control statements (\texttt{if-then-else} and standard \texttt{do} loops). Here are some recommendations:
+
+\begin{itemize}
+    \item Use block \texttt{if} statements instead of arithmetic \texttt{if}
+    \item Use block \texttt{if} or \texttt{select case} (in Fortran 90+) instead of computed \texttt{goto}
+    \item Avoid assigned \texttt{goto} entirely
+    \item Use error codes or logical flags instead of alternate returns
+    \item Always use \texttt{continue} as the target of \texttt{do} loops for clarity
+    \item Avoid non-block \texttt{do} loops with shared terminal statements
+\end{itemize}
+
+By following these guidelines, your Fortran code will be more readable, maintainable, and less prone to errors.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch09} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that prints $n!$ (the factorial of $n$) for $n = 1, 2, \ldots, 15$, computed both with an \texttt{integer} variable and with a \texttt{double precision} variable. From which $n$ on are the integer results wrong, and why?
+    \item The greatest common divisor of two positive integers can be computed with Euclid's algorithm: $\gcd(a, 0) = a$, and $\gcd(a, b) = \gcd(b, a \bmod b)$. Write a program that reads $a$ and $b$ and computes their greatest common divisor, using a while-loop built with \texttt{if} and \texttt{goto}. The remainder $a \bmod b$ is given by the intrinsic function \texttt{mod(a, b)}. Check that $\gcd(1071, 462) = 21$.
+    \item Write a program that prints a table with the numbers from 1 to 10, their squares and their cubes.
+    \item The sum $\sum_{k=1}^{n} 1/k^2$ approaches $\pi^2/6$ as $n$ grows. Write a program that computes the sum for $n = 1000$ in double precision and compares it with $\pi^2/6$. Be careful with the expression for the terms: \texttt{1/k**2} would be an integer division.
+    \item Without running them, how many times is the body of each of these loops executed: \texttt{do i = 1, 10, 3}; \texttt{do i = 10, 1}; \texttt{do i = 10, 1, -3}; \texttt{do i = 1, 1}? Check your answers with the formula for the iteration count, and then with a program that counts the iterations.
+    \item The Collatz sequence starts from a positive integer $n$; if $n$ is even it is halved, otherwise it is replaced by $3n+1$, and the process is repeated until $n$ is 1. Write a program that reads $n$, prints the sequence, and counts the steps, using a while-loop built with \texttt{if} and \texttt{goto}. (Starting from 6 it takes 8 steps.)
+    \item Write a program that reads numbers and adds them until a negative number is read (the negative number is not added), and then prints how many numbers were added and their sum. Use an until-loop.
+    \item Rewrite the program \texttt{weekdy} of this chapter with a block \texttt{if} instead of the computed \texttt{goto}.
+\end{enumerate}

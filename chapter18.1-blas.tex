@@ -1,0 +1,146 @@
+\section{BLAS}
+
+BLAS is an acronym for Basic Linear Algebra Subroutines. As the name indicates, it contains subprograms for basic operations on vectors and matrices. BLAS was designed to be used as a building block in other codes, for example LAPACK. The source code for BLAS is available through Netlib. However, many computer vendors will have a special version of BLAS tuned for maximal speed and efficiency on their computer. This is one of the main advantages of BLAS: the calling sequences are standardized so that programs that call BLAS will work on any computer that has BLAS installed. If you have a fast version of BLAS, you will also get high performance on all programs that call BLAS. Hence BLAS provides a simple and portable way to achieve high performance for calculations involving linear algebra. LAPACK is a higher-level package built on the same ideas.
+
+\subsection{Levels and naming conventions}
+
+The BLAS subroutines can be divided into three \emph{levels}:
+
+\begin{itemize}
+    \item \textbf{Level 1:} Vector-vector operations. \emph{O(n)} data and \emph{O(n)} work.
+    \item \textbf{Level 2:} Matrix-vector operations. \emph{O(n\textsuperscript{2})} data and \emph{O(n\textsuperscript{2})} work.
+    \item \textbf{Level 3:} Matrix-matrix operations. \emph{O(n\textsuperscript{2})} data and \emph{O(n\textsuperscript{3})} work.
+\end{itemize}
+
+Each BLAS and LAPACK routine comes in several versions, one for each precision (data type). The first letter of the subprogram name indicates the precision used:
+
+\begin{lstlisting}[style=fortran77]
+      S      Real single precision.
+      D      Real double precision.
+      C      Complex single precision.
+      Z      Complex double precision.
+\end{lstlisting}
+
+Complex double precision is not strictly defined in Fortran 77, but most compilers will accept one of the following declarations:
+
+\begin{lstlisting}[style=fortran77]
+      double complex list-of-variables
+      complex*16     list-of-variables
+\end{lstlisting}
+
+\subsection{BLAS 1}
+
+Some of the BLAS 1 subprograms are:
+
+\begin{itemize}
+    \item xCOPY - copy one vector to another
+    \item xSWAP - swap two vectors
+    \item xSCAL - scale a vector by a constant
+    \item xAXPY - add a multiple of one vector to another
+    \item xDOT - inner product
+    \item xASUM - 1-norm of a vector
+    \item xNRM2 - 2-norm of a vector
+    \item IxAMAX - find maximal entry in a vector
+\end{itemize}
+
+The first letter (x) can be any of the letters S,D,C,Z depending on the precision. A quick reference to BLAS 1 can be found at \url{http://www.netlib.org/blas/blasqr.ps}.
+
+\subsection{BLAS 2}
+
+Some of the BLAS 2 subprograms are:
+
+\begin{itemize}
+    \item xGEMV - general matrix-vector multiplication
+    \item xGER - general rank-1 update
+    \item xSYR2 - symmetric rank-2 update
+    \item xTRSV - solve a triangular system of equations
+\end{itemize}
+
+A detailed description of BLAS 2 can be found at \url{http://www.netlib.org/blas/blas2-paper.ps}.
+
+\subsection{BLAS 3}
+
+Some of the BLAS 3 subprograms are:
+
+\begin{itemize}
+    \item xGEMM - general matrix-matrix multiplication
+    \item xSYMM - symmetric matrix-matrix multiplication
+    \item xSYRK - symmetric rank-k update
+    \item xSYR2K - symmetric rank-2k update
+\end{itemize}
+
+The more advanced matrix operations, like solving a linear system of equations, are contained in LAPACK. A detailed description of BLAS 3 can be found at \url{http://www.netlib.org/blas/blas3-paper.ps}.
+
+\subsection{Examples}
+
+Let us first look at a very simple BLAS routine, SSCAL. The call sequence is
+
+\begin{lstlisting}[style=fortran77]
+      call SSCAL ( n, a, x, incx )
+\end{lstlisting}
+
+Here \emph{x} is the vector, \emph{n} is the length (number of elements in \emph{x} we wish to use), and \emph{a} is the scalar by which we want to multiply \emph{x}. The last argument \emph{incx} is the \emph{increment}. Usually, \emph{incx=1} and the vector \emph{x} corresponds directly to the one-dimensional Fortran array \emph{x}. For \emph{incx>1} it specifies how many elements in the array we should "jump" between each element of the vector \emph{x}. For example, if \emph{incx=2} it means we should only scale every other element (note: the physical dimension of the array \emph{x} should then be at least \emph{2n-1}). Consider these examples where \emph{x} has been declared as \texttt{real x(100)}.
+
+\begin{lstlisting}[style=fortran77]
+      call SSCAL(100, a, x, 1)
+      call SSCAL( 50, a, x(51), 1)
+      call SSCAL( 50, a, x(2), 2)
+\end{lstlisting}
+
+The first line will scale all 100 elements of \emph{x} by \emph{a}. The next line will only scale the last 50 elements of \emph{x}, i.e.\ x(51) to x(100). (A common slip is to write \texttt{x(50)}: that scales x(50) to x(99) and leaves x(100) untouched.) The last line will scale all the even indices of \emph{x} by \emph{a}: x(2), x(4), \ldots, x(100).
+
+Observe that the array \emph{x} will be overwritten by the new values. If you need to preserve a copy of the old \emph{x}, you have to make a copy first, e.g., by using SCOPY.
+
+Now consider a more complicated example. Suppose you have two 2-dimensional arrays A and B, and you are asked to find the \emph{(i,j)} entry of the product A*B. This is easily done by computing the inner product of row \emph{i} from A and column \emph{j} of B. We can use the BLAS 1 routine SDOT. Unlike SSCAL, SDOT is a \emph{function}: it returns the inner product as its value, so it must be declared (\texttt{real sdot}) and used in an expression. The only difficulty is to figure out the correct indices and increments. The calling sequence for SDOT is
+
+\begin{lstlisting}[style=fortran77]
+      s = SDOT ( n, x, incx, y, incy )
+\end{lstlisting}
+
+Suppose the array declarations were
+
+\begin{lstlisting}[style=fortran77]
+      real A(lda,lda)
+      real B(ldb,ldb)
+\end{lstlisting}
+
+but in the program you know that the actual size of A is \emph{m*p} and for B it is \emph{p*n}. The \emph{i}'th row of A starts at the element \emph{A(i,1)}. But since Fortran stores 2-dimensional arrays down columns, the next row element \emph{A(i,2)} will be stored \emph{lda} elements later in memory (since \emph{lda} is the length of a column). Hence we set \emph{incx = lda}. For the column in B there is no such problem, the elements are stored consecutively so \emph{incy = 1}. The length of the inner product calculation is \emph{p}. Hence the answer is
+
+\begin{lstlisting}[style=fortran77]
+      cij = SDOT ( p, A(i,1), lda, B(1,j), 1 )
+\end{lstlisting}
+
+\subsection{How to get the BLAS}
+
+First of all you should check if you already have BLAS on your system. On Linux it is usually one package away, e.g.\ \texttt{sudo apt install libblas-dev} (Debian/Ubuntu) or \texttt{sudo dnf install blas-devel} (Fedora). If not, you can get the \emph{reference} BLAS from Netlib at \url{https://www.netlib.org/blas/} and build it yourself with gfortran. The whole library comes as a single archive:
+
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small,columns=fullflexible]
+curl -O https://www.netlib.org/blas/blas.tgz
+tar xzf blas.tgz
+cd BLAS-3.12.0
+gfortran -O2 -c *.f *.f90
+ar cr libblas.a *.o
+ranlib libblas.a
+\end{lstlisting}
+
+A few remarks:
+
+\begin{itemize}
+    \item The version number in the directory name (here 3.12.0) changes with each release; use whatever \texttt{tar} created.
+    \item Some \texttt{tar} programs print warnings like \emph{Ignoring unknown extended header keyword}. They are harmless: the archive contains macOS metadata.
+    \item Recent versions include a few \texttt{.f90} files (e.g.\ \texttt{snrm2.f90}), so you need a compiler that also understands Fortran 90, such as gfortran.
+    \item Instead of the last three commands you can run \texttt{make}, which uses the settings in \texttt{make.inc} and produces a library named \texttt{blas\_LINUX.a}.
+    \item If you only need one or two routines, you can download them individually, e.g.\ \url{https://www.netlib.org/blas/sscal.f}, and compile them together with your program.
+\end{itemize}
+
+To link your program with the library (here assumed to be in the current directory):
+
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small,columns=fullflexible]
+gfortran myprog.f -L. -lblas -o myprog
+\end{lstlisting}
+
+The reference BLAS is meant to be correct and portable, not fast. For serious computations use an optimized implementation with the same interface, such as OpenBLAS or the vendor libraries (Intel MKL, Apple Accelerate); your program does not need to change, only the library you link with.
+
+\subsection{Documentation}
+
+The BLAS routines are almost self-explanatory. Once you know which routine you need, fetch it and read the header section that explains the input and output parameters in detail. We will look at an example in the next section when we address the LAPACK routines.

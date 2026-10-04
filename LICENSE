@@ -1,0 +1,53 @@
+Fortran 77 Tutorial -- adapted and extended edition
+====================================================
+
+This repository contains an adapted and extended edition of the Fortran 77
+tutorial written at Stanford University by Erik Boman, Sarah T. Whitlock and
+Paul H. Hargrove:
+
+    https://web.stanford.edu/class/me200c/tutorial_77/
+
+It is NOT an official version of that tutorial, and it has not been reviewed
+or endorsed by its authors or by Stanford University.
+
+The repository contains material under two different terms.
+
+1. Material from the original tutorial
+--------------------------------------
+
+The parts taken from the original tutorial (text and example programs) are
+
+    Copyright (c) 1995-7 by Stanford University. All rights reserved.
+
+and are used under the permission granted in its preface:
+
+    "Permission to use this tutorial for educational and other
+    non-commercial purposes is granted provided all author and copyright
+    information is retained."
+
+Any use of these parts must respect that permission: educational or other
+non-commercial purposes only, retaining all author and copyright information.
+
+2. New material of this edition
+-------------------------------
+
+Everything else -- the new and rewritten text, the exercises and their
+solutions, the code added to complete the example programs, the test
+scripts and the documentation -- is
+
+    Copyright (c) 2026 Roberto Augusto Gómez Loenzo
+
+and is licensed under the Creative Commons Attribution-NonCommercial-
+ShareAlike 4.0 International License (CC BY-NC-SA 4.0). The full text is in
+LICENSE-CC-BY-NC-SA-4.0.txt, and a summary is available at
+
+    https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+In short: you may copy, redistribute and adapt this material for
+non-commercial purposes, provided that you credit both the original authors
+(Erik Boman, Sarah T. Whitlock, Paul H. Hargrove, Stanford University) and
+the adapter (Roberto Augusto Gómez Loenzo), indicate if changes were made,
+and distribute your adaptations under the same license.
+
+See also "A note on this edition" in the preface of the tutorial
+(tutorial.pdf), which lists the main changes with respect to the original.

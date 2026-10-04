@@ -1,0 +1,492 @@
+\chapter{Format statements}
+\label{chap:format}
+
+So far we have mostly used \emph{free format} input/output. This uses a set of default rules for how to input and output values of different types (integers, reals, characters, etc.). Often the programmer wants to specify some particular input or output format, e.g., how many decimals places in real numbers. For this purpose Fortran 77 has the \emph{format} statement. The same format statements are used for both input and output.
+
+\section{Syntax}
+
+\begin{lstlisting}[style=fortran77]
+      write(*, label) list-of-variables
+ label format format-code
+\end{lstlisting}
+
+A simple example demonstrates how this works. Say you have an integer variable you want to print in a field 4 characters wide and a real number you want to print in fixed point notation with 3 decimal places.
+
+\begin{lstlisting}[style=fortran77]
+      write(*, 900) i, x
+  900 format (I4,F8.3)
+\end{lstlisting}
+
+The format label 900 is chosen somewhat arbitrarily, but it is common practice to number format statements with higher numbers than the control flow labels. After the keyword \texttt{format} follows the format codes enclosed in parenthesis. The code I4 stands for an integer with width four, while F8.3 means that the number should be printed using fixed point notation with field width 8 and 3 decimal places.
+
+The format statement may be located anywhere within the program unit. There are two programming styles: Either the format statement follows directly after the read/write statement, or all the format statements are grouped together at the end of the (sub-)program.
+
+\section{Common format codes}
+
+The most common format code letters are:
+
+\begin{lstlisting}[style=fortran77]
+   A - text string
+   D - double precision numbers, exponent notation
+   E - real numbers, exponent notation
+   F - real numbers, fixed point format
+   G - real numbers, F or E notation depending on the value
+   I - integer
+   L - logical (T or F)
+   X - horizontal skip (space)
+   / - vertical skip (newline)
+\end{lstlisting}
+
+The format code F has the general form F\emph{w.d} where \emph{w} is an integer constant denoting the field width (the total number of characters, including sign and decimal point) and \emph{d} is an integer constant denoting the number of digits after the decimal point. E\emph{w.d} and D\emph{w.d} are similar, but the number is written as a fraction between 0.1 and 1 with \emph{d} digits, followed by an exponent; e.g.\ 0.025 written with E10.3 is \texttt{\ 0.250E-01}.
+
+For integers only the field width is specified, so the syntax is \texttt{I}\emph{w}. The variant \texttt{I}\emph{w.m} writes at least \emph{m} digits, with leading zeros if necessary (\texttt{I2.2} writes 7 as \texttt{07}). Similarly, character strings can be specified as \texttt{A}\emph{w}, but the field width is often dropped: plain \texttt{A} uses the length of the string.
+
+If a number or string does not fill up the entire field width, spaces will be added. Numbers are adjusted to the right of the field; strings written with \texttt{A}\emph{w} are adjusted to the left. If a number does \emph{not fit} in the field, Fortran does not widen the field: it fills it with asterisks instead, as we will see below.
+
+For horizontal spacing, the \emph{n}\texttt{X} code is often used. This means \emph{n} horizontal spaces. For vertical spacing (newlines), use the code \texttt{/}. Each slash corresponds to one newline. Note that each read or write statement by default ends with a newline (here Fortran differs from C).
+
+\section{Some examples}
+
+This program
+
+\begin{lstlisting}[style=fortran77]
+      program fmtex
+      implicit none
+      real x
+      integer i
+
+      x = 0.025
+      i = 42
+      write(*,100) 'x=', x
+  100 format (A,F8.4)
+      write(*,110) 'x=', x
+  110 format (A,F5.3)
+      write(*,120) 'x=', x
+  120 format (A,E12.4)
+      write(*,130) 'x=', x
+  130 format (A,E8.1)
+      write(*,140) 'i=', i, 'x=', 123.456
+  140 format (A,I4,2X,A,F6.2)
+      write(*,150) 'i=', i, 'x=', 123.456
+  150 format (A,I1,2X,A,F4.2)
+
+      stop
+      end
+\end{lstlisting}
+
+produces the following output when we run it:
+
+\begin{lstlisting}[style=output]
+x=  0.0250
+x=0.025
+x=  0.2500E-01
+x= 0.3E-01
+i=  42  x=123.46
+i=*  x=****
+\end{lstlisting}
+
+Note how blanks are automatically padded on the left, and how the numbers are rounded to the number of decimals asked for (0.025 becomes 0.3E-01 with one digit, and 123.456 becomes 123.46). The last line shows what happens when a field is too narrow: 42 does not fit in one column and 123.456 does not fit in four, so the fields are filled with asterisks. If you see asterisks in the output of a Fortran program, a format is too narrow.
+
+Also notice that, unlike list-directed output, formatted output does not start each line with a blank. In old programs you will often see formats that start with \texttt{1X} or a string like \texttt{' '}. The reason is historical: when output went to a line printer, the first character of each line was not printed but used for \emph{carriage control} (a blank meant ``normal line'', \texttt{'1'} meant ``new page'', \texttt{'0'} ``skip a line''). Modern systems ignore this convention, but you need to know it when reading old code. In old code you may also meet \emph{Hollerith} constants such as \texttt{5HHELLO} (the 5 characters after the H), which were used for text in formats before character strings existed; today simply write \texttt{'HELLO'}.
+
+In this example each write statement used a different format statement. But it is perfectly fine to use the same format statement for many different write statements. In fact, this is one of the main advantages of using format statements. This feature is handy when you print tables for instance, and want each row to have the same format.
+
+\section{Format strings in read/write statements}
+
+Instead of specifying the format code in a separate format statement, one can give the format code in the read/write statement directly. For example, the statement
+
+\begin{lstlisting}[style=fortran77] 
+      write (*,'(A, F8.3)') 'The answer is x = ', x
+\end{lstlisting}
+
+is equivalent to
+
+\begin{lstlisting}[style=fortran77] 
+      write (*,990) 'The answer is x = ', x
+  990 format (A, F8.3)
+\end{lstlisting}
+
+Sometimes text strings are given in the format statements, e.g. the following version is also equivalent:
+
+\begin{lstlisting}[style=fortran77] 
+      write (*,999) x
+  999 format ('The answer is x = ', F8.3)
+\end{lstlisting}
+
+\section{Implicit loops and repeat counts}
+
+Now let us do a more complicated example. Say you have a two-dimensional array of integers and want to print the upper left 5 by 10 submatrix with 10 values each on 5 rows. Here is how:
+
+\begin{lstlisting}[style=fortran77]
+      do 10 i = 1, 5
+         write(*,1000) (a(i,j), j=1,10)
+   10 continue
+ 1000 format (10I6)
+\end{lstlisting}
+
+We have an explicit do loop over the rows and an \emph{implicit} loop over the column index j. The repeat count 10 in \texttt{10I6} means ten integer fields, each 6 characters wide. It matters: with \texttt{format (I6)} the format describes only one number, and each write statement would print its ten values on ten separate lines (see the rule for ``running out'' of a format below).
+
+Often a format statement involves repetition, for example
+
+\begin{lstlisting}[style=fortran77]
+  950 format (2X, I3, 2X, I3, 2X, I3, 2X, I3)
+\end{lstlisting}
+
+There is a shorthand notation for this:
+
+\begin{lstlisting}[style=fortran77]
+  950 format (4(2X, I3))
+\end{lstlisting}
+
+It is also possible to allow repetition without explicitly stating how many times the format should be repeated. Suppose you have a real vector \texttt{x} where you want to print the first 50 elements, with ten elements on each line. Here is one way:
+
+\begin{lstlisting}[style=fortran77]
+      write(*,1010) (x(i), i=1,50)
+ 1010 format (10F7.2)
+\end{lstlisting}
+
+The format statement says ten numbers should be printed. But in the write statement we try to print 50 numbers. So after the ten first numbers have been printed, a new line is started and the same format is automatically used for the next ten numbers, and so on. This is called \emph{format reversion}.
+
+Be careful to match the format codes to the types of the values: \texttt{x} is real, so it needs an F (or E) code. Writing a real number with an I code is an error, and gfortran stops the program with a message like \emph{Expected INTEGER for item 1 in formatted transfer, got REAL}.
+
+Implicit do-loops can be multi-dimensional and can be used to make a read or write statement difficult to understand. You should avoid using implicit loops which are much more complicated than the ones shown here.
+
+\section{Internal files}
+\label{sec:internal-files}
+
+The unit in a read or write statement does not have to be a file or the screen: it can also be a \emph{character variable}. Such a variable is called an \emph{internal file}. Writing to an internal file converts numbers into text, and reading from it converts text into numbers, using the same format codes as for ordinary I/O. This is the standard Fortran 77 way to convert between numbers and strings:
+
+\begin{lstlisting}[style=fortran77]
+      program dates
+      implicit none
+      character*8 text
+      integer year, month, day, date
+
+c Text to numbers: read from the character variable text
+      text = '20230415'
+      read (text, '(I4,I2,I2)') year, month, day
+      write (*,*) 'Year:', year, '  Month:', month, '  Day:', day
+
+c Numbers to text: write into the character variable text
+      date = 20240101
+      write (text, '(I8)') date
+      write (*,*) 'As text: [', text, ']'
+
+c Build a date with leading zeros
+      year = 2025
+      month = 7
+      day = 4
+      write (text, '(I4,I2.2,I2.2)') year, month, day
+      write (*,*) 'Built:   [', text, ']'
+
+      stop
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ Year:        2023   Month:           4   Day:          15
+ As text: [20240101]
+ Built:   [20250704]
+\end{lstlisting}
+
+Internal files are also useful to build file names, e.g.\ \texttt{write (fname, '(A,I3.3,A)') 'data', k, '.txt'} gives \texttt{data007.txt} when \texttt{k} is 7. Note that Fortran 77 requires a format for internal files; list-directed I/O (\texttt{*}) on internal files was only allowed from Fortran 90 on.
+
+\section{Putting it together: a table of circle areas}
+
+We end this chapter by returning, once more, to our circle program. This version reads any number of radii from the file \texttt{radii.dat} (one per line), computes the areas with an external function, and prints a neat table:
+
+\begin{lstlisting}[style=fortran77]
+      program circle
+      implicit none
+      integer u, n
+      parameter (u = 10)
+      real r, carea
+
+      open (u, file='radii.dat', status='old', err=900)
+
+      write (*,'(A)') '   Radius        Area'
+      write (*,'(A)') '  -------  ----------'
+      n = 0
+   10 read (u, *, end=20) r
+         n = n + 1
+         write (*,'(F9.3, F12.4)') r, carea(r)
+         goto 10
+   20 continue
+      close (u)
+      write (*,'(I4, A)') n, ' circles'
+      stop
+
+  900 write (*,*) 'Cannot open the file radii.dat'
+      stop
+      end
+
+      real function carea(r)
+      implicit none
+      real r, pi
+      parameter (pi = 3.14159265)
+
+      carea = pi * r * r
+
+      return
+      end
+\end{lstlisting}
+
+If \texttt{radii.dat} contains the numbers 0.5, 1, 2, 10 and 25.5, the output is:
+
+\begin{lstlisting}[style=output]
+   Radius        Area
+  -------  ----------
+    0.500      0.7854
+    1.000      3.1416
+    2.000     12.5664
+   10.000    314.1593
+   25.500   2042.8208
+   5 circles
+\end{lstlisting}
+
+Compare this with the first version in Chapter 3: the program now uses a named constant, a function, a file, a while-loop built with \texttt{goto}, end-of-file and error handling, and formatted output. The headings were written with the same field widths (9 and 12 characters) as the numbers, so the columns line up.
+
+\section{NAMELIST I/O}
+
+In addition to formatted and list-directed I/O, there is a third method called NAMELIST I/O. Strictly speaking it is \emph{not} part of Fortran 77: it was a common extension (many Fortran 77 compilers supported it, with small differences) and became standard in Fortran 90. All current compilers support it. This feature allows you to read and write groups of variables by name, which can be particularly convenient for managing program input parameters or debugging.
+
+\subsection{Defining a NAMELIST group}
+
+Before using NAMELIST I/O, you must define one or more NAMELIST groups in your program. Each group consists of a name and a list of variables:
+
+\begin{lstlisting}[style=fortran77]
+      NAMELIST /group_name/ variable_list
+\end{lstlisting}
+
+For example:
+
+\begin{lstlisting}[style=fortran77]
+      real x, y, z
+      integer count, flag
+      character*20 title
+      
+      NAMELIST /params/ x, y, z, count, flag
+      NAMELIST /header/ title
+\end{lstlisting}
+
+This defines two NAMELIST groups: "params" containing five numeric variables, and "header" containing one character variable.
+
+The NAMELIST statement should appear in the declaration section of your program, after all variable declarations but before any executable statements.
+
+\subsection{Reading with NAMELIST}
+
+To read values using NAMELIST, use the READ statement with the NAMELIST group name:
+
+\begin{lstlisting}[style=fortran77]
+      READ ([UNIT=]u, NML=group_name [,IOSTAT=ios] [,ERR=s] [,END=s])
+\end{lstlisting}
+
+For example:
+
+\begin{lstlisting}[style=fortran77]
+      READ (*, NML=params)
+\end{lstlisting}
+
+The input format for NAMELIST is special. It begins with an ampersand followed by the group name, contains variable assignments, and ends with a slash:
+
+\begin{lstlisting}[style=fortran77]
+      &group_name variable=value [,variable=value]... /
+\end{lstlisting}
+
+For example, given the NAMELIST group "params" defined above, valid input would be:
+
+\begin{lstlisting}[style=fortran77]
+      &params x=1.0, y=2.0, z=3.0, count=10, flag=1 /
+\end{lstlisting}
+
+The input can span multiple lines, and you only need to provide values for the variables you want to change. Variables not mentioned in the input retain their current values. Also, the order of variables in the input does not have to match the order in the NAMELIST declaration.
+
+\subsubsection{Array input with NAMELIST}
+
+NAMELIST makes it easy to input array values. You can input an entire array, a section of an array, or individual elements:
+
+\begin{lstlisting}[style=fortran77]
+      real a(10), matrix(5,5)
+      NAMELIST /arrays/ a, matrix
+      
+      READ (*, NML=arrays)
+\end{lstlisting}
+
+Valid input might look like:
+
+\begin{lstlisting}[style=fortran77]
+      &arrays 
+        a = 10*0.0,
+        matrix(1,1) = 1.0,
+        matrix(2,2) = 2.0,
+        matrix(3,3) = 3.0,
+        matrix(4,4) = 4.0,
+        matrix(5,5) = 5.0
+      /
+\end{lstlisting}
+
+Or using array section notation (which varies by compiler implementation):
+
+\begin{lstlisting}[style=fortran77]
+      &arrays 
+        a = 10*0.0,
+        matrix(1:5:1,1:5:1) = 25*0.0,
+        matrix(1,1) = 1.0,
+        matrix(2,2) = 2.0,
+        matrix(3,3) = 3.0,
+        matrix(4,4) = 4.0,
+        matrix(5,5) = 5.0
+      /
+\end{lstlisting}
+
+\subsection{Writing with NAMELIST}
+
+Similarly, you can write values using NAMELIST:
+
+\begin{lstlisting}[style=fortran77]
+      WRITE ([UNIT=]u, NML=group_name [,IOSTAT=ios] [,ERR=s])
+\end{lstlisting}
+
+For example:
+
+\begin{lstlisting}[style=fortran77]
+      WRITE (*, NML=params)
+\end{lstlisting}
+
+This would produce output in the same format as NAMELIST input:
+
+\begin{lstlisting}[style=fortran77]
+      &PARAMS
+       X=   1.000000    ,
+       Y=   2.000000    ,
+       Z=   3.000000    ,
+       COUNT=         10,
+       FLAG=          1
+      /
+\end{lstlisting}
+
+The exact format of the output will depend on the compiler, but it will always be in a form that can be read back with a NAMELIST READ statement.
+
+\subsection{Advantages of NAMELIST I/O}
+
+NAMELIST I/O offers several advantages over other I/O methods:
+
+\begin{enumerate}
+    \item \textbf{Self-documenting input} - The variables are referenced by name in the input file.
+    \item \textbf{Flexibility} - You can read only the variables you need to change.
+    \item \textbf{Convenience} - No need to write FORMAT statements or match input order.
+    \item \textbf{Debugging} - Easy to dump variables and their values during program execution.
+\end{enumerate}
+
+\subsection{Example: Parameter input with NAMELIST}
+
+Here's a complete example showing how NAMELIST can be used for parameter input:
+
+\begin{lstlisting}[style=fortran77]
+      program simulation
+      implicit none
+      real dt, tend, x0, v0
+      integer nsteps, output_freq
+      character*30 title, output_file
+      logical debug
+      
+c Declare namelist groups
+      NAMELIST /params/ dt, tend, nsteps, output_freq, debug
+      NAMELIST /initial/ x0, v0
+      NAMELIST /output/ title, output_file
+      
+c Set defaults
+      dt = 0.01
+      tend = 10.0
+      nsteps = 1000
+      output_freq = 10
+      debug = .FALSE.
+      
+      x0 = 0.0
+      v0 = 0.0
+      
+      title = 'Simulation Results'
+      output_file = 'output.dat'
+      
+c Read parameters from standard input
+      write(*,*) 'Enter simulation parameters:'
+      read(*, NML=params, END=100)
+      read(*, NML=initial, END=100)
+      read(*, NML=output, END=100)
+      
+c Echo parameters back to the user
+      write(*,*) 'Running simulation with parameters:'
+      write(*, NML=params)
+      write(*, NML=initial)
+      write(*, NML=output)
+      
+c Run simulation (not shown here)
+      
+  100 continue
+      stop
+      end
+\end{lstlisting}
+
+With this program, a user could provide input as simple as:
+
+\begin{lstlisting}[style=fortran77]
+      &params dt=0.005, tend=20.0 /
+      &initial x0=1.0, v0=-0.5 /
+      &output title='Fall 2023 Simulation Run' /
+\end{lstlisting}
+
+And the program would use those values along with defaults for the unspecified parameters. With gfortran, the echoed values look like this:
+
+\begin{lstlisting}[style=output]
+&PARAMS
+ DT=  4.99999989E-03,
+ TEND=  20.0000000    ,
+ NSTEPS=1000       ,
+ OUTPUT_FREQ=10         ,
+ DEBUG=F,
+ /
+\end{lstlisting}
+
+Notice that \texttt{dt} is printed as \texttt{4.99999989E-03} although we typed 0.005: as we saw in Chapter 5, most decimal fractions cannot be stored exactly in a \texttt{real}.
+
+\subsection{Limitations of NAMELIST I/O}
+
+While NAMELIST is a powerful feature, it has some limitations:
+
+\begin{enumerate}
+    \item It's not part of the Fortran 77 standard (it is standard since Fortran 90, and widely implemented as an extension in Fortran 77 compilers).
+    \item Syntax details may vary slightly between compilers.
+    \item Derived types (in Fortran 90+) can't be included in NAMELIST groups in older compilers.
+    \item Some compilers restrict the types of expressions that can appear in NAMELIST input.
+\end{enumerate}
+
+Despite these limitations, NAMELIST I/O is a valuable tool for many Fortran applications, especially those requiring flexible parameter input or extensive debugging output.
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch17} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a program that prints the multiplication table of the numbers 1 to 9, with a heading row and a separating line, using format statements with repeat counts and implied do-loops.
+    \item Using internal files to build the names, write a program that creates the files \texttt{out001.txt}, \ldots, \texttt{out005.txt}, each containing one line \texttt{This is file number k}. Then the program should open each file again, print its line, and obtain the number $k$ back from the text with another internal read. Delete the files when closing them.
+    \item Without a computer, write down exactly what each of these statements prints (the brackets show where each field begins and ends). Then check your answers.
+
+\begin{lstlisting}[style=fortran77]
+      write (*,'(A,I5,A)')    '[', 12345678, ']'
+      write (*,'(A,F6.2,A)')  '[', 3.14159, ']'
+      write (*,'(A,E10.3,A)') '[', -0.000123, ']'
+      write (*,'(A,I3.3,A)')  '[', 7, ']'
+      write (*,'(A,A3,A)')    '[', 'Fortran', ']'
+      write (*,'(A,A10,A)')   '[', 'Fortran', ']'
+      write (*,'(A,L3,A)')    '[', .TRUE., ']'
+      write (*,'(A,F4.1,A)')  '[', -9.96, ']'
+\end{lstlisting}
+
+    \item Write a program that prints the squares of $1, 2, \ldots, 25$, eight on each line, with a single write statement and the format \texttt{(8I6)}. How many lines are printed, and why?
+    \item Each line of the input has a date written as \emph{yyyymmdd} and a time \emph{hhmm}, separated by one blank, e.g.\ \texttt{20240315 1250}. Write a program that reads the parts with a format, by columns, and prints them as \texttt{2024-03-15  12:50}.
+    \item Write a program that reads a number of decimals $d$ (from 0 to 7) and prints $\pi$ with $d$ decimals. Build the format at run time: write it into a character variable with an internal write, e.g.\ \texttt{'(F10.5)'} for $d = 5$, and then use the variable as the format.
+    \item Write a program that reads the parameters \texttt{nx}, \texttt{ny}, \texttt{xmin} and \texttt{xmax} of a grid with NAMELIST, with the defaults 11, 11, 0.0 and 1.0, and prints them back (also with NAMELIST) together with the spacing $dx = (x_{max} - x_{min})/(n_x - 1)$. Try it with the input \texttt{\&grdpar nx=21, xmax=2.0 /}.
+    \item Extend the program for the table of circle areas of this chapter with a column for the circumference, and print the total area of all the circles at the end of the table.
+\end{enumerate}

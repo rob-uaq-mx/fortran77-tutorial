@@ -1,0 +1,43 @@
+\chapter{What is Fortran?}
+
+Fortran is a general purpose programming language, mainly intended for mathematical computations in science and engineering. Fortran is an acronym for FORmula TRANslation, and was originally capitalized as FORTRAN. However, following the current trend to only capitalize the first letter in acronyms, we will call it Fortran. Fortran was the first high-level programming language to be widely used. The work on Fortran started in the 1950's at IBM, under the direction of John Backus, and the first compiler was delivered in 1957. There have been many versions since. By convention, a Fortran version is denoted by the last two digits of the year the standard was proposed (or, since 2003, by all four digits). Thus we have
+
+\begin{itemize}
+    \item FORTRAN 66 (the first standard)
+    \item FORTRAN 77
+    \item Fortran 90 and its minor revision Fortran 95
+    \item Fortran 2003, Fortran 2008, Fortran 2018 and Fortran 2023
+\end{itemize}
+
+Fortran 90 was a major revision: it introduced free-form source code, array operations, dynamic memory allocation, modules, derived types (records) and much more. The later standards added, among other things, object-oriented programming, interoperability with the C language, and parallel programming with \emph{coarrays}. All of these standards are almost completely backwards compatible: with very few exceptions, a standard-conforming Fortran 77 program is also a valid program in the later standards, and today's compilers compile it without problems.
+
+Users should be aware that most Fortran 77 compilers allow a superset of Fortran 77, i.e. they allow non-standard extensions. In this tutorial we will emphasize standard ANSI Fortran 77, and we will point out the extensions we use.
+
+\section{Why learn Fortran 77?}
+
+Fortran is still widely used in engineering and science, especially for computationally intensive work such as weather and climate models, fluid dynamics, structural analysis and computational chemistry, and it is one of the main languages used on supercomputers. A huge amount of this software was written in Fortran 77, or in later versions of Fortran in a style that is very close to it. Classic numerical libraries such as BLAS and LAPACK (see Chapter 18) are still distributed as Fortran 77 code. It is therefore important for engineers and scientists to be able to read, use and modify Fortran 77 code.
+
+From time to time, so-called experts predict that Fortran will rapidly fade in popularity and soon become extinct. These predictions have always failed. Fortran is the most enduring computer programming language in history. One of the reasons is \emph{software inertia}: once a company or a research group has spent many years of work on a piece of software, it is unlikely to translate it to a different language. Reliable software translation is a very difficult task. Another reason is that Fortran compilers produce very fast code for numerical computations.
+
+If you are going to write a \emph{new} program, you should consider using the features of modern Fortran (Fortran 90 and later). But everything you learn in this tutorial remains valid, and it is the best preparation for working with the large body of existing Fortran code.
+
+\section{Portability}
+
+A major advantage Fortran has is that it is standardized by ANSI and ISO (see footnotes). Consequently, if your program is written in ANSI Fortran 77, using nothing outside the standard, then it will run on any computer that has a Fortran 77 compiler. Thus, Fortran programs are portable across machine platforms. The complete text of the Fortran 77 standard is available on the Web site of WG5, the ISO committee responsible for Fortran: \url{https://wg5-fortran.org/ARCHIVE/Fortran77.html}.
+
+\begin{quote}
+\textbf{Footnotes:}\\
+ANSI = American National Standards Institute\\
+ISO = International Organization for Standardization
+\end{quote}
+
+\section{Exercises}
+
+Answers are in the file \texttt{code/exercises/ch02/answers.md} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item What does the name Fortran mean? Who directed its development, and in which year was the first compiler delivered?
+    \item List the versions of Fortran in chronological order, and name three important new features of Fortran 90.
+    \item Explain in your own words what \emph{software inertia} is, and why it helps to keep Fortran 77 in use.
+    \item Open the text of the Fortran 77 standard at \url{https://wg5-fortran.org/ARCHIVE/Fortran77.html} and read its Section 1.1. According to that section, what is the purpose of the standard? Relate it to the idea of portability.
+\end{enumerate}

@@ -1,0 +1,427 @@
+\chapter{Subprograms}
+
+When a program is more than a few hundred lines long, it gets hard to follow. Fortran codes that solve real engineering problems often have tens of thousands of lines. The only way to handle such big codes, is to use a \emph{modular} approach and split the program into many separate smaller units called \emph{subprograms}.
+
+A subprogram is a (small) piece of code that solves a well defined subproblem. In a large program, one often has to solve the same subproblems with many different data. Instead of replicating code, these tasks should be solved by subprograms. The same subprogram can be invoked many times with different input data.
+
+Fortran has two different types of subprograms, called \emph{functions} and \emph{subroutines}.
+
+\section{Statement functions}
+
+Before we discuss external functions and subroutines, let's look at a simpler construct called the \emph{statement function}. A statement function is defined by a single statement within the program unit that uses it. It provides a convenient way to define simple, single-line functions.
+
+The syntax for a statement function is:
+
+\begin{lstlisting}[style=fortran77]
+      name(dummy_arg_list) = expression
+\end{lstlisting}
+
+Here is our circle program once more, now with a statement function \texttt{carea} that calculates the area of a circle:
+
+\begin{lstlisting}[style=fortran77]
+      program circle
+      implicit none
+      real r, area, pi, rad, carea
+      parameter (pi = 3.14159)
+
+c Statement function: area of a circle with radius rad
+      carea(rad) = pi * rad * rad
+
+c Main program
+      write(*,*) 'Give radius r:'
+      read(*,*) r
+      area = carea(r)
+      write(*,*) 'Area = ', area
+
+      stop
+      end
+\end{lstlisting}
+
+The dummy argument \texttt{rad} is only a placeholder: when we write \texttt{carea(r)}, the expression \texttt{pi * rad * rad} is evaluated with \texttt{rad} replaced by \texttt{r}. Both the function name and the dummy argument must have a type, which is why they appear in the \texttt{real} declaration.
+
+Statement functions have several restrictions:
+
+\begin{itemize}
+    \item They must be defined after all specification statements (\texttt{parameter}, \texttt{dimension}, etc.) but before any executable statements
+    \item The expression may use the dummy arguments, constants, and variables of the surrounding program unit
+    \item The definition is a single expression, so it cannot contain statements such as \texttt{if} or \texttt{do}
+    \item The expression may call intrinsic and external functions, and statement functions defined \emph{earlier} in the same program unit
+    \item They cannot be recursive, and they cannot be passed as arguments to other subprograms
+\end{itemize}
+
+Statement functions are useful for simple calculations that are needed repeatedly within a program unit, but for more complex operations, external functions or subroutines are necessary.
+
+\section{Functions}
+
+Fortran functions are quite similar to mathematical functions: They both take a set of input arguments (parameters) and return a value of some type. In the preceding discussion we talked about \emph{user defined} subprograms. Fortran 77 also has some \emph{intrinsic} (built-in) functions.
+
+A simple example illustrates how to use a function:
+
+\begin{lstlisting}[style=fortran77]
+      x = cos(pi/3.0)
+\end{lstlisting}
+
+Here \texttt{cos} is the cosine function, so \texttt{x} will be assigned the value 0.5 (if \texttt{pi} has been correctly defined; Fortran 77 has no built-in constants). There are many intrinsic functions in Fortran 77. Some of the most common are:
+
+\begin{lstlisting}[style=fortran77]
+      abs     absolute value
+      min     minimum value
+      max     maximum value
+      sqrt    square root
+      sin     sine
+      cos     cosine
+      tan     tangent
+      atan    arctangent
+      exp     exponential (natural)
+      log     logarithm (natural)
+\end{lstlisting}
+
+In general, a function always has a \emph{type}. Most of the built-in functions mentioned above, however, are \emph{generic}. So in the example above, \texttt{pi} and \texttt{x} could be either of type \texttt{real} or \texttt{double precision}. The compiler would check the types and use the correct version of \texttt{cos} (real or double precision). Unfortunately, Fortran is not really a \emph{polymorphic} language so in general you have to be careful to match the types of your variables and your functions!
+
+Now we turn to the user-written functions. Consider the following problem: in a region with wet winters and dry summers, a hydrologist describes the rainfall of each month with a simple model \emph{mrain(m,t)}, where \emph{m} is the month (1 to 12) and \emph{t} is a parameter that depends on the location. Given the formula for \emph{mrain} and the value of \emph{t}, compute the annual rainfall.
+
+The obvious way to solve the problem is to write a loop that runs over all the months and sums up the monthly values. Since computing the rainfall of one month is an independent subproblem, it is convenient to implement it as a function. The following main program can be used:
+
+\begin{lstlisting}[style=fortran77]
+      program annual
+      implicit none
+      real mrain, t, r, sum
+      integer m
+
+      read (*,*) t
+      sum = 0.0
+      do 10 m = 1, 12
+         r = mrain(m, t)
+         write (*,*) 'Month', m, ':', r
+         sum = sum + r
+   10 continue
+      write (*,*) 'Annual rainfall is ', sum, ' inches'
+
+      stop
+      end
+\end{lstlisting}
+
+Note that we have declared \texttt{mrain} to be \texttt{real} just as we would a variable. In addition, \texttt{mrain} has to be defined as a Fortran function. The model is
+
+\[
+mrain(m,t) = \begin{cases}
+  \frac{t}{10}\,(m^2 - 13m + 30) & \text{if this is positive,} \\
+  0 & \text{otherwise.}
+\end{cases}
+\]
+
+(The polynomial is negative from April to September: those are the dry months.) The corresponding Fortran function is
+
+\begin{lstlisting}[style=fortran77]
+      real function mrain(m, t)
+      implicit none
+      integer m
+      real t
+
+      mrain = 0.1*t*(m**2 - 13*m + 30)
+      if (mrain .LT. 0.0) mrain = 0.0
+
+      return
+      end
+\end{lstlisting}
+
+With $t = 1.5$ the program prints
+
+\begin{lstlisting}[style=output]
+ Month           1 :   2.70000005
+ Month           2 :   1.20000005
+ Month           3 :   0.00000000
+   ...
+ Month          11 :   1.20000005
+ Month          12 :   2.70000005
+ Annual rainfall is    7.80000019      inches
+\end{lstlisting}
+
+We see that the structure of a function closely resembles that of the main program. The main differences are:
+
+\begin{itemize}
+    \item Functions have a type. This type must also be declared in the calling program.
+    \item The return value is stored in a variable with the same name as the function.
+    \item Functions return to the calling program unit, instead of stopping the program. This happens when a \texttt{return} statement or the final \texttt{end} is reached; the \texttt{return} just before \texttt{end} is therefore optional, but it is customary.
+\end{itemize}
+
+To sum up, the general syntax of a Fortran 77 function is:
+
+\begin{lstlisting}[style=fortran77]
+      type function name (list-of-variables)
+      declarations
+      statements
+      return
+      end
+\end{lstlisting}
+
+The function is called by simply using the function name and listing the arguments in parentheses.
+
+\subsection{Why the function must be declared}
+
+The function has to be declared with the correct type in the calling program unit. If you use a function which has not been declared, Fortran will use the same implicit typing rules as for variables. Here the name starts with \texttt{m}, so \texttt{mrain} would be taken to be an \texttt{integer} function. Suppose we remove both \texttt{implicit none} and \texttt{mrain} from the declarations of the main program, and put the main program and the function in separate files, \texttt{annual.f} and \texttt{mrain.f}. The program compiles without any complaint:
+
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small,columns=fullflexible]
+gfortran annual.f mrain.f -o annual
+\end{lstlisting}
+
+but the results are nonsense. With gfortran on a 64-bit Windows or Linux computer, for example, we get:
+
+\begin{lstlisting}[style=output]
+ Month           1 :   18.0000000
+ Month           2 :   8.00000000
+ Month           3 :   0.00000000
+ Month           4 :  -6.00000000
+   ...
+ Month          12 :   18.0000000
+ Annual rainfall is   -4.00000000      inches
+\end{lstlisting}
+
+Negative rainfall! The function returns a real number, but the main program expects an integer and looks for it in the wrong place, where it finds whatever happens to be there (here, apparently, an intermediate result of the function). On other computers the numbers are different, for example huge values such as \texttt{4.28741760E+09}. The dangerous case is the one shown here, where the wrong results look almost plausible. The compiler cannot detect the error, because it compiles each file separately and never sees both the call and the function at the same time. (If both are in the same file, modern versions of gfortran do notice the mismatch.) With \texttt{implicit none} in the main program, however, the mistake is caught immediately:
+
+\begin{lstlisting}[style=output]
+Error: Function 'mrain' at (1) has no IMPLICIT type
+\end{lstlisting}
+
+This is one more good reason to always use \texttt{implicit none}.
+
+It should be noted that strictly speaking Fortran 77 doesn't permit recursion (functions which call themselves). However, it is not uncommon for a compiler to allow recursion.
+
+\section{Subroutines}
+
+A Fortran function can essentially only return one value. Often we want to return two or more values (or sometimes none!). For this purpose we use the \texttt{subroutine} construct. The syntax is as follows:
+
+\begin{lstlisting}[style=fortran77]
+      subroutine name (list-of-arguments)
+      declarations
+      statements
+      return
+      end
+\end{lstlisting}
+
+Note that subroutines have no type and consequently should not (cannot) be declared in the calling program unit. They are also invoked differently than functions, using the word \emph{call} before their names and parameters.
+
+We give an example of a very simple subroutine. The purpose of the subroutine is to swap two integers.
+
+\begin{lstlisting}[style=fortran77]
+      subroutine iswap (a, b)
+      implicit none
+      integer a, b
+c Local variables
+      integer tmp
+
+      tmp = a
+      a = b
+      b = tmp
+
+      return
+      end
+\end{lstlisting}
+
+Note that there are two blocks of variable declarations here. First, we declare the input/output parameters, i.e. the variables that are common to both the caller and the callee. Afterwards, we declare the \emph{local variables}, i.e. the variables that can only be used within this subprogram. We can use the same variable names in different subprograms and the compiler will know that they are different variables that just happen to have the same names.
+
+\section{Call-by-reference}
+
+Fortran 77 uses the so-called \emph{call-by-reference} paradigm. This means that instead of just passing the values of the function/subroutine arguments (\emph{call-by-value}), the memory address of the arguments (pointers) are passed instead. A small example should show the difference:
+
+\begin{lstlisting}[style=fortran77]
+      program callex
+      implicit none
+      integer m, n
+c
+      m = 1
+      n = 2 
+
+      call iswap(m, n)
+      write(*,*) m, n
+
+      stop
+      end
+\end{lstlisting}
+
+The output from this program is "2 1", just as one would expect. However, if Fortran 77 had been using call-by-value then the output would have been "1 2", i.e. the variables m and n were unchanged! The reason for this is that only the values of m and n had been copied to the subroutine iswap, and even if a and b were swapped inside the subroutine the new values would not have been passed back to the main program.
+
+In the above example, call-by-reference was exactly what we wanted. But you have to be careful about this when writing Fortran code, because it is easy to introduce undesired \emph{side effects}. For example, sometimes it is tempting to use an input parameter in a subprogram as a local variable and change its value. Since the new value will then propagate back to the calling program with an unexpected value, you should \emph{never} do this unless (like our iswap subroutine) the change is part of the purpose of the subroutine.
+
+\subsection{A dangerous mistake: passing a constant}
+
+What happens if one of the arguments is a constant instead of a variable?
+
+\begin{lstlisting}[style=fortran77]
+      program swapk
+      implicit none
+      integer n
+
+      n = 5
+      call iswap(1, n)
+      write(*,*) 'n =', n
+
+      stop
+      end
+\end{lstlisting}
+
+The subroutine receives the \emph{address} of the constant 1 and tries to store the value 5 there. The standard forbids this, but the compiler cannot detect it if \texttt{iswap} is in another file. What actually happens depends on the system. With gfortran on a current computer, constants are kept in read-only memory, and the program crashes:
+
+\begin{lstlisting}[style=output]
+Program received signal SIGSEGV: Segmentation fault -
+invalid memory reference.
+\end{lstlisting}
+
+On many older systems the program did \emph{not} crash: the constant was silently changed, so that from then on every \texttt{1} in the program had the value 5! Never pass a constant (or an expression) as an argument that the subprogram modifies.
+
+We will come back to this issue in a later section on passing arrays as arguments (parameters).
+
+\section{The \texttt{SAVE} statement}
+
+In Fortran 77, the local variables of a subprogram become \emph{undefined} when the subprogram returns: the standard does not guarantee that they still have their old values at the next call. (Many compilers do keep the values, which is why old programs that rely on it often seem to work, until they are compiled with another compiler or with different options.) However, there are situations where you want a local variable to maintain its value between calls. This is where the \texttt{SAVE} statement comes in.
+
+The syntax of the \texttt{SAVE} statement is:
+
+\begin{lstlisting}[style=fortran77]
+      SAVE [list-of-variables]
+\end{lstlisting}
+
+If no list is provided, all local variables in the subprogram are saved. Here's a simple example of using \texttt{SAVE} to create a counter that remembers how many times a subroutine has been called:
+
+\begin{lstlisting}[style=fortran77]
+      program calls
+      implicit none
+
+      call counter
+      call counter
+      call counter
+
+      stop
+      end
+
+      subroutine counter
+      implicit none
+      integer count
+      save count
+      data count /0/
+
+      count = count + 1
+      write(*,*) 'This subroutine has been called', count, 'times.'
+
+      return
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ This subroutine has been called           1 times.
+ This subroutine has been called           2 times.
+ This subroutine has been called           3 times.
+\end{lstlisting}
+
+The \texttt{DATA} statement gives \texttt{count} its initial value 0 once, when the program is loaded; it is not executed again at each call. Without the \texttt{SAVE} statement, the value of \texttt{count} would be undefined at the second and later calls.
+
+Here's another example that uses \texttt{SAVE} to maintain state between function calls. The function \texttt{runsum} keeps a \emph{running sum}: each call adds its argument to a total and returns the new total.
+
+\begin{lstlisting}[style=fortran77]
+      program total
+      implicit none
+      real runsum, s
+
+      s = runsum(10.0)
+      s = runsum(-2.5)
+      s = runsum(4.0)
+      write(*,*) 'Running sum =', s
+
+      stop
+      end
+
+      real function runsum(x)
+      implicit none
+      real x, sum
+      save sum
+      data sum /0.0/
+
+      sum = sum + x
+      runsum = sum
+
+      return
+      end
+\end{lstlisting}
+
+Output:
+
+\begin{lstlisting}[style=output]
+ Running sum =   11.5000000
+\end{lstlisting}
+
+The \texttt{SAVE} statement ensures that the variable \texttt{sum} maintains its value between function calls. Notice that \texttt{runsum} is not a ``pure'' function in the mathematical sense: \texttt{runsum(4.0)} returns a different value each time it is called.
+
+\subsection{When to use \texttt{SAVE}}
+
+You should use the \texttt{SAVE} statement when:
+
+\begin{itemize}
+    \item A subprogram needs to remember state information between calls
+    \item You have a variable initialized with a DATA statement that should not be reinitialized on subsequent calls
+    \item You need to perform an expensive initialization once and reuse the results in subsequent calls
+\end{itemize}
+
+\subsection{Restrictions on \texttt{SAVE}}
+
+There are some restrictions on the use of \texttt{SAVE}:
+
+\begin{itemize}
+    \item Dummy arguments (parameters) cannot be saved.
+    \item Individual variables of a common block cannot appear in a \texttt{SAVE} list; you can only save the whole block, by writing its name between slashes: \texttt{save /coeff/}. (A named common block keeps its values as long as some active program unit uses it; to be safe, save it in every subprogram that uses it, or declare it in the main program.)
+    \item Variables initialized by a \texttt{DATA} statement are \emph{not} automatically saved in Fortran 77: if they are changed, they become undefined on return unless they are saved. (In Fortran 90 initialized variables are saved automatically.)
+\end{itemize}
+
+\subsection{Best practices with \texttt{SAVE}}
+
+Some recommendations for using \texttt{SAVE}:
+
+\begin{itemize}
+    \item Always explicitly initialize saved variables, either with a DATA statement or within the executable code
+    \item Document the use of SAVE variables clearly, as they create implicit state that can make debugging difficult
+    \item Consider alternatives like passing state through parameters or using common blocks for more complex state
+    \item Be aware that saved variables can make code non-reentrant and potentially not thread-safe
+\end{itemize}
+
+\section{Exercises}
+
+Solutions are in the directory \texttt{code/exercises/ch11} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Write a logical function \texttt{isprim(n)} which returns \texttt{.TRUE.} if the integer \texttt{n} is a prime number and \texttt{.FALSE.} otherwise. Use it in a program that prints all the prime numbers below 100 (there are 25 of them). Hint: it is enough to try the divisors $k$ with $k^2 \le n$.
+    \item Write a real function \texttt{rnd()} (a function may have no arguments) that returns a pseudo-random number between 0 and 1, using the \emph{linear congruential} method: each call computes \texttt{seed = mod(25173*seed + 13849, 65536)} and returns \texttt{seed/65536.0}. The variable \texttt{seed} must keep its value between calls: use \texttt{SAVE}, and give it an initial value with \texttt{DATA}. Test the function by printing the average of 10000 numbers, which should be close to 0.5.
+    \item Write a program that prints a table of conversion from degrees Fahrenheit to degrees Celsius, for $0, 10, 20, \ldots, 100$ degrees Fahrenheit. Define the conversion $C = (F - 32) \cdot 5/9$ with a statement function.
+    \item Write a real function \texttt{dist(x1, y1, x2, y2)} that returns the distance between the points $(x_1, y_1)$ and $(x_2, y_2)$, and use it to compute the perimeter of the triangle with vertices $(0,0)$, $(3,0)$ and $(0,4)$.
+    \item Write an integer function \texttt{ndigit(n)} that returns the number of decimal digits of an integer $n \ge 0$ (\texttt{ndigit(0)} is 1). The function must not change its argument: why?
+    \item Write a subroutine \texttt{polar(x, y, r, theta)} that converts the cartesian coordinates $(x, y)$ of a point to polar coordinates $r = \sqrt{x^2 + y^2}$ and $\theta$, in degrees. Use the intrinsic function \texttt{atan2(y, x)}, which returns the angle in radians, between $-\pi$ and $\pi$. Why is a subroutine needed here, and not a function?
+    \item Write a subroutine \texttt{sort3(a, b, c)} that sorts three integers in increasing order, using the subroutine \texttt{iswap} of this chapter.
+    \item What does the following program print? Why? Fix the function.
+
+\begin{lstlisting}[style=fortran77]
+      program sumto
+      implicit none
+      integer isum, n, s
+
+      n = 4
+      s = isum(n)
+      write (*,*) 'Sum of 1 to', n, ' is', s
+
+      stop
+      end
+
+      integer function isum(n)
+      implicit none
+      integer n
+
+      isum = 0
+   10 if (n .GT. 0) then
+         isum = isum + n
+         n = n - 1
+         goto 10
+      endif
+
+      return
+      end
+\end{lstlisting}
+\end{enumerate}

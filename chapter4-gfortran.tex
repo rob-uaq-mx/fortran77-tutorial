@@ -1,0 +1,268 @@
+\chapter{How to use Fortran with gfortran}
+
+\section{Introduction to gfortran}
+
+In this chapter, we'll learn how to compile and run Fortran 77 programs using gfortran, which is the Fortran compiler from the GNU Compiler Collection (GCC). gfortran is freely available, widely used, and runs on most operating systems including Linux, macOS, and Windows.
+
+\subsection{Installing gfortran}
+
+Before you can compile Fortran programs, you'll need to have gfortran installed on your system.
+
+\begin{itemize}
+    \item \textbf{On Linux:} Most Linux distributions provide gfortran through their package managers. For example:
+    \begin{itemize}
+        \item Ubuntu/Debian: \texttt{sudo apt install gfortran}
+        \item Fedora: \texttt{sudo dnf install gcc-gfortran}
+        \item Arch Linux: \texttt{sudo pacman -S gcc-fortran}
+    \end{itemize}
+    
+    \item \textbf{On macOS:} You can install gfortran using Homebrew:
+    \begin{itemize}
+        \item Install Homebrew first (if you don't have it), following the instructions at \url{https://brew.sh}
+        \item Then install gfortran: \texttt{brew install gcc}
+    \end{itemize}
+    
+    \item \textbf{On Windows:} You have several options:
+    \begin{itemize}
+        \item Install \href{https://www.msys2.org}{MSYS2} and then, in its UCRT64 terminal, the package with gfortran:\\ \texttt{pacman -S mingw-w64-ucrt-x86\_64-}\allowbreak\texttt{gcc-fortran}
+        \item Use Windows Subsystem for Linux (WSL) and install gfortran there as on Linux
+        \item Install Cygwin with its gfortran package
+    \end{itemize}
+\end{itemize}
+
+To verify that gfortran is installed correctly, open a terminal (or Command Prompt on Windows) and type:
+
+\begin{lstlisting}[language=bash]
+gfortran --version
+\end{lstlisting}
+
+You should see output showing the version of gfortran installed on your system.
+
+\section{Source code, object code, compiling, and linking}
+
+A Fortran program consists of plain text that follows certain rules (syntax). This is called the \emph{source code}. You need to use a text editor to write (edit) the source code. There are many text editors available, such as:
+
+\begin{itemize}
+    \item Visual Studio Code with the Modern Fortran extension
+    \item Sublime Text with appropriate syntax highlighting
+    \item Vim or Emacs with Fortran syntax support
+    \item Notepad++ on Windows
+\end{itemize}
+
+Modern text editors provide useful features like syntax highlighting, which makes it easier to identify different parts of your code.
+
+When you have written a Fortran program, you should save it in a file with the extension \emph{.f} or \emph{.for} for Fortran 77 code (or \emph{.f90} for more modern Fortran). Before you can execute the program, you need to translate it into machine-readable form. This is done by a program called a \emph{compiler}. gfortran will convert your source code into an executable program.
+
+\subsection{Basic compilation}
+
+The simplest way to compile a Fortran program with gfortran is:
+
+\begin{lstlisting}[language=bash]
+gfortran program.f -o program
+\end{lstlisting}
+
+Where:
+\begin{itemize}
+    \item \texttt{program.f} is your source file
+    \item \texttt{-o program} specifies the name of the executable file to create
+\end{itemize}
+
+If you omit the \texttt{-o} option, gfortran will create an executable named \texttt{a.out} on Linux/macOS or \texttt{a.exe} on Windows.
+
+To run the program, in your terminal or command prompt:
+
+\begin{lstlisting}[language=bash]
+# On Linux/macOS
+./program
+
+# On Windows
+program.exe
+\end{lstlisting}
+
+\subsection{Compilation process in detail}
+
+The compilation process actually involves several steps:
+
+\begin{enumerate}
+    \item \textbf{Preprocessing:} Handles any preprocessing directives (not common in Fortran 77)
+    \item \textbf{Compilation:} Converts the source code to object code
+    \item \textbf{Linking:} Combines object files and libraries to create an executable
+\end{enumerate}
+
+You can perform these steps separately if needed:
+
+\begin{lstlisting}[language=bash]
+# Compile to object file only
+gfortran -c program.f
+
+# This creates program.o (an object file)
+# Then link to create executable
+gfortran program.o -o program
+\end{lstlisting}
+
+\subsection{Example: Compiling and running a simple program}
+
+Let's compile and run the circle area program \texttt{circle} from Chapter 3. We will meet this program several times in this tutorial: each time we learn something new, we will use it to improve the program a little.
+
+First, save the program to a file named \texttt{circle.f}. Then, compile and run it:
+
+\begin{lstlisting}[language=bash]
+# Compile
+gfortran circle.f -o circle
+
+# Run
+./circle
+\end{lstlisting}
+
+When you run the program, it will prompt you to enter a radius. After you enter a value (say 2) and press Enter, it will calculate and display the area of the circle:
+
+\begin{lstlisting}[style=output]
+ Give radius r:
+2
+ Area =    12.5663605
+\end{lstlisting}
+
+Notice the extra blank at the beginning of each output line and the wide field used for the number. This is how \emph{list-directed} output (\texttt{write (*,*)}) looks; in Chapter~\ref{chap:format} we will learn how to control the layout.
+
+\section{Compiling multiple files}
+
+For larger projects, your code might be split across multiple files. For example, suppose you have a main program in \texttt{main.f} and some subroutines in \texttt{subs.f}. You can compile them together:
+
+\begin{lstlisting}[language=bash]
+gfortran main.f subs.f -o program
+\end{lstlisting}
+
+Or compile them separately and then link:
+
+\begin{lstlisting}[language=bash]
+gfortran -c main.f
+gfortran -c subs.f
+gfortran main.o subs.o -o program
+\end{lstlisting}
+
+This second approach is useful for larger projects, as you only need to recompile files that have changed.
+
+\section{Useful compiler options}
+
+gfortran provides many compiler options that can help detect errors and improve your code:
+
+\begin{description}
+    \item[\texttt{-Wall}] Enable all common warning messages. This helps catch potential problems.
+    
+    \item[\texttt{-Wextra}] Enable additional warnings beyond those in \texttt{-Wall}.
+    
+    \item[\texttt{-std=legacy}] Accept old (legacy) Fortran code, including obsolete features, without complaining. This is useful for compiling old programs; note that it is the \emph{most permissive} mode, not a strict one. gfortran has no option that checks for strict Fortran 77; the closest is \texttt{-std=f95}, which reports the features that were deleted or are non-standard in Fortran 95.
+    
+    \item[\texttt{-fimplicit-none}] Require explicit declarations of all variables (similar to adding \texttt{implicit none} to your code).
+    
+    \item[\texttt{-g}] Include debugging information in the executable, useful when using a debugger.
+    
+    \item[\texttt{-O2}] Optimize code for speed (level 2 optimization).
+    
+    \item[\texttt{-fcheck=bounds}] Check for array bounds violations at runtime (slows down execution but helps find bugs). The older spelling \texttt{-fbounds-check} also works. \texttt{-fcheck=all} turns on all run-time checks.
+\end{description}
+
+Example with multiple options:
+
+\begin{lstlisting}[language=bash]
+gfortran -Wall -fcheck=all -g circle.f -o circle
+\end{lstlisting}
+
+\section{Building with Make}
+
+For complex projects with many files, it's cumbersome to manually compile each file. The \texttt{make} utility automates this process with a Makefile that specifies dependencies between files.
+
+Here's a simple example of a Makefile for a project with two source files:
+
+\begin{lstlisting}[language=make]
+# Simple Makefile for Fortran 77 project
+
+# Compiler and flags
+FC = gfortran
+FFLAGS = -Wall -g
+
+# Target executable
+TARGET = myprogram
+
+# Object files
+OBJS = main.o subs.o
+
+# Default rule
+all: $(TARGET)
+
+# Rule to create the executable
+$(TARGET): $(OBJS)
+	$(FC) -o $@ $(OBJS)
+
+# Rule for compiling Fortran source files
+%.o: %.f
+	$(FC) $(FFLAGS) -c $<
+
+# Clean rule
+clean:
+	rm -f $(OBJS) $(TARGET)
+\end{lstlisting}
+
+With this Makefile in your project directory, you can simply run:
+
+\begin{lstlisting}[language=bash]
+make
+\end{lstlisting}
+
+And it will compile only the files that have changed since the last build.
+
+\section{Debugging Fortran programs}
+
+When your program doesn't work as expected, you can use a debugger to help find the issue. The GNU Debugger (GDB) works with gfortran. To use it:
+
+\begin{enumerate}
+    \item Compile your program with the \texttt{-g} flag to include debugging information:
+    \begin{lstlisting}[language=bash]
+gfortran -g program.f -o program
+    \end{lstlisting}
+    
+    \item Start the debugger:
+    \begin{lstlisting}[language=bash]
+gdb ./program
+    \end{lstlisting}
+    
+    \item Set breakpoints, run the program, and examine variables. Some basic GDB commands:
+    \begin{itemize}
+        \item \texttt{break 10} - Set a breakpoint at line 10
+        \item \texttt{run} - Start the program
+        \item \texttt{print x} - Print value of variable x
+        \item \texttt{step} - Execute next line, stepping into subroutines
+        \item \texttt{next} - Execute next line, stepping over subroutines
+        \item \texttt{continue} - Continue execution until next breakpoint
+        \item \texttt{quit} - Exit GDB
+    \end{itemize}
+\end{enumerate}
+
+Many editors and development environments offer a graphical interface to gdb, which may be more user-friendly; for example, Visual Studio Code with the Modern Fortran extension and a debugging extension for gdb. Chapter 20 gives more hints on debugging.
+
+\section{The programs of this tutorial}
+
+All the programs in this tutorial, the code fragments turned into complete programs, and the solutions to the exercises are available in the directory \texttt{code} that accompanies this tutorial, organized by chapter (\texttt{code/ch05}, \texttt{code/ch06}, \ldots). The script \texttt{run\_tests.sh} in that directory compiles and runs all of them, so you can easily check that they work with your compiler. We encourage you to type in at least the first few programs yourself, though: making (and fixing) small mistakes is part of learning a language.
+
+\section{Resources for learning more about gfortran}
+
+To learn more about gfortran and its capabilities, here are some useful resources:
+
+\begin{itemize}
+    \item The official gfortran documentation: \url{https://gcc.gnu.org/onlinedocs/gfortran/}
+    \item GNU Fortran Wiki: \url{https://gcc.gnu.org/wiki/GFortran}
+    \item Fortran Programming Wikibook: \url{https://en.wikibooks.org/wiki/Fortran}
+\end{itemize}
+
+Remember that gfortran supports both Fortran 77 and modern Fortran standards. As you gain experience, you might want to explore newer Fortran features available in Fortran 90, 95, 2003, 2008, and beyond.
+
+\section{Exercises}
+
+The files mentioned below, and the answers, are in the directory \texttt{code/exercises/ch04} that accompanies this tutorial.
+
+\begin{enumerate}
+    \item Install gfortran and check the installation with \texttt{gfortran --version}. Then compile and run the programs \texttt{hello.f} and \texttt{circle.f} of Chapter 3.
+    \item Compile \texttt{circle.f} in two steps: first only to an object file, then link it. Which files exist after each step?
+    \item The program in \texttt{main.f} uses a function that is in another file, \texttt{funcs.f} (functions are explained in Chapter 11). Compile both files into one executable, first with a single command and then in separate steps. Then write a Makefile for them, and check that after modifying only \texttt{funcs.f}, \texttt{make} does not recompile \texttt{main.f}.
+    \item The program \texttt{typo.f} has a misspelled variable name. Compile and run it without options, then with \texttt{-Wall}, and finally with \texttt{-fimplicit-none}. Explain what happens in each case.
+\end{enumerate}
